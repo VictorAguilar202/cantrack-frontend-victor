@@ -30,6 +30,53 @@ function Root() {
   return <App />;
 }
 
+// Installed on an iPhone (black-translucent status bar), the page is drawn from
+// the very top of the screen but the viewport it reports is the screen minus
+// the status bar, so the frame stopped ~62pt short and the body showed below.
+// There the whole screen is the app, so size the frame to the screen itself.
+const isInstalledIphone =
+  /iPhone|iPod/.test(navigator.userAgent) &&
+  ((navigator as Navigator & { standalone?: boolean }).standalone === true ||
+    (typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches));
+
+function fitInstalledIphone(frame: HTMLElement) {
+  const portrait = window.innerHeight >= window.innerWidth;
+  const screenHeight = portrait ? Math.max(screen.height, screen.width) : Math.min(screen.height, screen.width);
+  if (screenHeight > window.innerHeight) {
+    frame.style.bottom = "auto";
+    frame.style.height = `${screenHeight}px`;
+  } else {
+    frame.style.removeProperty("bottom");
+    frame.style.removeProperty("height");
+  }
+}
+
+const trackedFrames = new WeakSet<HTMLElement>();
+
+/**
+ * Screens size themselves with var(--app-h) instead of 100dvh (100dvh is
+ * shorter than the screen on an installed iPhone): the frame's real height is
+ * the truth, so publish it, and keep it current on resize and rotation.
+ * A ref callback, because the frame only exists once React has rendered.
+ */
+function trackFrame(frame: HTMLDivElement | null) {
+  if (frame === null || trackedFrames.has(frame)) {
+    return;
+  }
+  trackedFrames.add(frame);
+  const publishHeight = () => {
+    if (isInstalledIphone) {
+      fitInstalledIphone(frame);
+    }
+    frame.style.setProperty("--app-h", `${frame.clientHeight}px`);
+  };
+  publishHeight();
+  if (typeof ResizeObserver !== "undefined") {
+    new ResizeObserver(publishHeight).observe(frame);
+  }
+  window.addEventListener("resize", publishHeight);
+}
+
 createRoot(rootElement).render(
   <StrictMode>
     <div className="iphone">
@@ -37,7 +84,7 @@ createRoot(rootElement).render(
       <span className="iphone__button iphone__button--up" />
       <span className="iphone__button iphone__button--down" />
       <span className="iphone__button iphone__button--power" />
-      <div className="phone-frame">
+      <div className="phone-frame" ref={trackFrame}>
         <div className="phone-frame__scroll">
           <Root />
         </div>

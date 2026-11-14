@@ -9,7 +9,7 @@ export function CityPreview() {
         <div className="auth-backdrop__clouds auth-backdrop__clouds--left" />
         <div className="auth-backdrop__clouds auth-backdrop__clouds--right" />
       </div>
-      <div style={{ position: "relative", display: "grid", placeItems: "center", minHeight: "100dvh", padding: 16 }}>
+      <div style={{ position: "relative", display: "grid", placeItems: "center", minHeight: "var(--app-h, 100dvh)", padding: 16 }}>
         <div style={{ width: "min(100%, 980px)" }}>
           <CityScene />
         </div>
