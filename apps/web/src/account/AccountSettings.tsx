@@ -5,6 +5,7 @@ import {
   deleteOwnerAccount,
   deleteWalkerAccount,
   downloadExport,
+  setAccountRole,
   type AccountRole,
 } from "../lib/marketplace.js";
 import { supabase } from "../lib/supabase.js";
@@ -46,6 +47,23 @@ export function AccountSettings({ role, userId, onSignOut }: AccountSettingsProp
   const [typed, setTyped] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [switchError, setSwitchError] = useState<string | null>(null);
+  const otherRole: AccountRole = role === "owner" ? "walker" : "owner";
+
+  // One email can be owner and walker: the API grants the other role (or
+  // switches to it) and the refreshed session swaps the whole app over.
+  async function switchRole() {
+    setIsSwitching(true);
+    setSwitchError(null);
+    try {
+      await setAccountRole(otherRole);
+      await supabase.auth.refreshSession();
+    } catch (failure: unknown) {
+      setSwitchError(accountError(failure, "No pudimos cambiar de modo. Inténtalo de nuevo."));
+      setIsSwitching(false);
+    }
+  }
 
   async function submitPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -114,6 +132,24 @@ export function AccountSettings({ role, userId, onSignOut }: AccountSettingsProp
 
   return (
     <>
+      <section className="explore__form" aria-label="Modo de la cuenta">
+        <h2 className="explore__section">{role === "owner" ? "¿También paseas perros?" : "¿También tienes perro?"}</h2>
+        <p className="explore__hint">
+          {role === "owner"
+            ? "Usa este mismo correo como paseador. Tus perros y paseos siguen aquí; vuelves cuando quieras."
+            : "Usa este mismo correo como dueño. Tus clientes y rutas siguen aquí; vuelves cuando quieras."}
+        </p>
+        <button
+          type="button"
+          className="explore__small explore__small--lime"
+          disabled={isSwitching}
+          onClick={() => void switchRole()}
+        >
+          {isSwitching ? "Cambiando…" : otherRole === "walker" ? "Cambiar a modo paseador" : "Cambiar a modo dueño"}
+        </button>
+        {switchError !== null ? <p className="explore__error" role="alert">{switchError}</p> : null}
+      </section>
+
       <form className="explore__form" onSubmit={(event) => void submitPassword(event)} aria-label="Seguridad">
         <h2 className="explore__section">Seguridad</h2>
         <div className="explore__field">

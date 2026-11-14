@@ -63,7 +63,8 @@ export function loginAccount(email: string, password: string): Promise<ApiSessio
   });
 }
 
-export function setAccountRole(role: AccountRole): Promise<{ role: AccountRole }> {
+/** Grant or switch to a role; one email may hold both. The session must be refreshed after. */
+export function setAccountRole(role: AccountRole): Promise<{ role: AccountRole; roles: AccountRole[] }> {
   return request("/auth/role", { method: "POST", body: json({ role }), mascot: false });
 }
 

@@ -208,8 +208,14 @@ function OffersPanel({ request, favorites, onPicked, onRaised, onCancelled, onCl
   // The panel sits above the form, far from the "Ver ofertas" button that
   // opens it at the bottom of the screen: bring it into view.
   useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    panelRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    const panel = panelRef.current;
+    if (panel === null || typeof panel.scrollIntoView !== "function") {
+      return;
+    }
+    const reduce =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    panel.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
   }, [request.id]);
 
   const poll = useCallback(async () => {

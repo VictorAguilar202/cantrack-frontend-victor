@@ -77,6 +77,10 @@ function useActivePill(active: string) {
       setClip(`inset(${top}px ${right}px ${bottom}px ${left}px round 20px)`);
     };
     measure();
+    // Old browsers (and jsdom) lack ResizeObserver: the pill just won't follow resizes.
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
     const observer = new ResizeObserver(measure);
     observer.observe(nav);
     return () => observer.disconnect();
@@ -95,7 +99,10 @@ export function HomeShell({ role, screens = {}, onLogout, userId = "", preview =
     setActive((current) => {
       if (current !== id) {
         // A new tab starts at its top, like a native tab bar.
-        sceneRef.current?.scrollTo({ top: 0 });
+        const scene = sceneRef.current;
+        if (scene !== null && typeof scene.scrollTo === "function") {
+          scene.scrollTo({ top: 0 });
+        }
       }
       return id;
     });

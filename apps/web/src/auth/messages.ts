@@ -84,7 +84,7 @@ export const authCopy = {
     consentRequired: "Marca la casilla de datos personales para continuar.",
     oauth: "No pudimos conectar con ese servicio. Inténtalo de nuevo.",
     passwordRequired: "Escribe tu contraseña.",
-    signup: "No pudimos crear tu cuenta. Inténtalo de nuevo.",
+    signup: "No pudimos crear tu cuenta. Si ese correo ya está registrado, inicia sesión y en Perfil cambia a dueño o paseador.",
     login: "Correo o contraseña incorrectos.",
     reset: "No pudimos enviar el correo. Inténtalo de nuevo.",
   },

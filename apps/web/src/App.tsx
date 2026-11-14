@@ -182,15 +182,22 @@ export function App() {
     if (session === null || session === undefined || preview !== null) {
       return;
     }
-    if (sessionRole === "owner" || sessionRole === "walker") {
-      return;
-    }
+    const hasRole = sessionRole === "owner" || sessionRole === "walker";
     // Accounts made before the API took over signup only carry the role in user_metadata.
     // It is sent as a hint, never trusted: the API assigns app_metadata.role itself.
     const legacy = session.user.user_metadata?.role;
-    const legacyRole = legacy === "owner" || legacy === "walker" ? legacy : null;
+    const legacyRole = !hasRole && (legacy === "owner" || legacy === "walker") ? legacy : null;
+    // One email may be owner and walker: signing up with Google as the other role
+    // on an existing account adds that role instead of being ignored.
     const pendingRole = readPendingRole() ?? legacyRole;
-    if (pendingRole === null) {
+    if (pendingRole === null || pendingRole === sessionRole) {
+      if (hasRole) {
+        try {
+          window.localStorage.removeItem(PENDING_ROLE_KEY);
+        } catch {
+          // Storage blocked: nothing to clean up.
+        }
+      }
       return;
     }
     void setAccountRole(pendingRole)
