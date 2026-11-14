@@ -20,7 +20,8 @@ body {
 body {
   display: grid;
   place-items: center;
-  background: #0d1a14;
+  /* The app's own background, so any edge the frame misses never shows as a dark band. */
+  background: var(--c-bg, #0d1a14);
 }
 
 #root {
@@ -37,11 +38,14 @@ body {
   position: relative;
 }
 
+/* On a phone the frame is pinned to all four edges instead of sized with
+   100vw/100dvh: installed on an iPhone (standalone, viewport-fit=cover),
+   100dvh comes out shorter than the screen and the dark body showed as a
+   strip under the nav. inset: 0 always reaches the real bottom edge. */
 .phone-frame {
   container: app / inline-size;
-  position: relative;
-  width: 100vw;
-  height: 100dvh;
+  position: fixed;
+  inset: 0;
   overflow: hidden;
   contain: layout paint;
   transform: translateZ(0);
@@ -98,6 +102,8 @@ body {
   .phone-frame {
     --safe-top: 54px;
     --safe-bottom: 22px;
+    position: relative;
+    inset: auto;
     width: 393px;
     height: var(--screen-h);
     border-radius: 55px;
