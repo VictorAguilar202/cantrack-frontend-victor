@@ -20,8 +20,9 @@ body {
 body {
   display: grid;
   place-items: center;
-  /* The app's own background, so any edge the frame misses never shows as a dark band. */
-  background: var(--c-bg, #0d1a14);
+  /* The same meadow the screens use, so any edge the frame misses blends in
+     instead of showing as a white or dark band. */
+  background: #4c9be0 url("/art/backdrop/meadow.webp") 50% 62% / cover no-repeat;
 }
 
 #root {

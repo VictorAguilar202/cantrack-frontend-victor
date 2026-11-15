@@ -44,15 +44,14 @@ const isInstalledIphone =
     (typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches));
 
 function fitInstalledIphone(frame: HTMLElement) {
+  // Always the full screen, from the top edge: some iOS versions report a short
+  // viewport, others report the right height but still leave the bottom band,
+  // so the reported viewport is never trusted here.
   const portrait = window.innerHeight >= window.innerWidth;
   const screenHeight = portrait ? Math.max(screen.height, screen.width) : Math.min(screen.height, screen.width);
-  if (screenHeight > window.innerHeight) {
-    frame.style.bottom = "auto";
-    frame.style.height = `${screenHeight}px`;
-  } else {
-    frame.style.removeProperty("bottom");
-    frame.style.removeProperty("height");
-  }
+  frame.style.top = "0px";
+  frame.style.bottom = "auto";
+  frame.style.height = `${Math.max(screenHeight, window.innerHeight)}px`;
 }
 
 const trackedFrames = new WeakSet<HTMLElement>();
