@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { PinIcon } from "../auth/icons.js";
 import { ClockIcon, CloseIcon, CrosshairIcon, HomeIcon, MapIcon } from "../home/icons.js";
 import { reverseAddress, searchAddress, type AddressResult } from "../lib/marketplace.js";
@@ -36,6 +37,13 @@ type Search =
   | { state: "ok"; results: AddressResult[] }
   | { state: "unavailable" };
 
+/** Room the list wants below the box before it flips above it. */
+const MIN_ROOM_PX = 220;
+const MAX_LIST_PX = 340;
+const EDGE_PX = 16;
+
+type PanelPlace = { left: number; width: number; top?: number; bottom?: number; maxHeight: number };
+
 const LOCATE_ROW: Row = { kind: "locate", title: "Mi ubicación", detail: "Usar el GPS del celular" };
 const MAP_ROW: Row = { kind: "map", title: "Elegir en el mapa", detail: "Mueve el mapa hasta el punto" };
 
@@ -65,6 +73,7 @@ export function PickupField({ value, onChange, home = null, invalid = false, loa
   const [notice, setNotice] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [recents, setRecents] = useState<PickupPlace[]>([]);
+  const [place, setPlace] = useState<PanelPlace | null>(null);
 
   const query = text.trim();
   const searching = value === null && query.length >= MIN_QUERY;
@@ -99,6 +108,37 @@ export function PickupField({ value, onChange, home = null, invalid = false, loa
     }, DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [query, searching]);
+
+  // The list is drawn on <body>, under the box. Inside the glass card its blur would only see the
+  // card itself (a backdrop-filter does not blur past an ancestor that has one), so the cards
+  // behind it would show through sharp. It follows the box while the screen scrolls or resizes.
+  useLayoutEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+    function measure() {
+      const box = wrapperRef.current?.getBoundingClientRect();
+      if (box === undefined) {
+        return;
+      }
+      const room = window.innerHeight - box.bottom - EDGE_PX;
+      const flip = room < MIN_ROOM_PX && box.top - EDGE_PX > room;
+      setPlace({
+        left: box.left,
+        width: box.width,
+        ...(flip ? { bottom: window.innerHeight - box.top + 8 } : { top: box.bottom + 8 }),
+        maxHeight: Math.max(120, Math.min(MAX_LIST_PX, (flip ? box.top - EDGE_PX : room) - 8)),
+      });
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    // Capture: the screen scrolls inside its own container, and scroll events do not bubble.
+    window.addEventListener("scroll", measure, true);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure, true);
+    };
+  }, [open]);
 
   const rows = buildRows();
 
@@ -283,37 +323,46 @@ export function PickupField({ value, onChange, home = null, invalid = false, loa
           </button>
         </div>
 
-        {open ? (
-          // A mouse down on the list must not blur the box, or the click would never land.
-          <div className="pickup-field__panel" onMouseDown={(event) => event.preventDefault()}>
-            {rows.length > 0 ? (
-              <ul id={listId} role="listbox" aria-label="Sugerencias de dirección" className="pickup-field__list">
-                {rows.map((row, index) => (
-                  <li
-                    key={`${row.kind}-${row.title}-${index}`}
-                    id={optionId(index)}
-                    role="option"
-                    aria-selected={index === active}
-                    className="pickup-field__option"
-                    onClick={() => activate(row)}
-                    onMouseEnter={() => setActive(index)}
-                  >
-                    <span className="pickup-field__option-icon">{rowIcon(row)}</span>
-                    <span className="pickup-field__option-text">
-                      <span className="pickup-field__option-title">{row.title}</span>
-                      <span className="pickup-field__option-detail">{row.detail}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {statusText !== null ? (
-              <p className="pickup-field__status" role="status">
-                {statusText}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
+        {open && place !== null
+          ? createPortal(
+              // A mouse down on the list must not blur the box, or the click would never land.
+              <div
+                className="pickup-field__panel"
+                style={{ left: place.left, width: place.width, top: place.top, bottom: place.bottom }}
+                onMouseDown={(event) => event.preventDefault()}
+              >
+                <div className="pickup-field__scroll" style={{ maxHeight: place.maxHeight }}>
+                  {rows.length > 0 ? (
+                    <ul id={listId} role="listbox" aria-label="Sugerencias de dirección" className="pickup-field__list">
+                      {rows.map((row, index) => (
+                        <li
+                          key={`${row.kind}-${row.title}-${index}`}
+                          id={optionId(index)}
+                          role="option"
+                          aria-selected={index === active}
+                          className="pickup-field__option"
+                          onClick={() => activate(row)}
+                          onMouseEnter={() => setActive(index)}
+                        >
+                          <span className="pickup-field__option-icon">{rowIcon(row)}</span>
+                          <span className="pickup-field__option-text">
+                            <span className="pickup-field__option-title">{row.title}</span>
+                            <span className="pickup-field__option-detail">{row.detail}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {statusText !== null ? (
+                    <p className="pickup-field__status" role="status">
+                      {statusText}
+                    </p>
+                  ) : null}
+                </div>
+              </div>,
+              document.body,
+            )
+          : null}
       </div>
 
       {notice !== null ? (
