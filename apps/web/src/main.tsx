@@ -49,9 +49,34 @@ function fitInstalledIphone(frame: HTMLElement) {
   // so the reported viewport is never trusted here.
   const portrait = window.innerHeight >= window.innerWidth;
   const screenHeight = portrait ? Math.max(screen.height, screen.width) : Math.min(screen.height, screen.width);
+  const height = `${Math.max(screenHeight, window.innerHeight)}px`;
   frame.style.top = "0px";
   frame.style.bottom = "auto";
-  frame.style.height = `${Math.max(screenHeight, window.innerHeight)}px`;
+  frame.style.height = height;
+  // html and body too: after the keyboard or a date picker closes, iOS only
+  // paints fixed content inside the document's box, and a body sized to the
+  // short viewport left a bare blue band under the nav.
+  document.documentElement.style.height = height;
+  document.body.style.height = height;
+}
+
+/**
+ * Typing or picking a date makes iOS scroll the page itself to show the field,
+ * and it does not always scroll back. The page never scrolls on purpose (the
+ * frame's inner box does), so put it back at the top and refit the frame.
+ */
+function resetInstalledIphone(frame: HTMLElement) {
+  // While a field is being typed in, iOS needs the page scroll to keep it above
+  // the keyboard: leave it alone until the field loses focus.
+  const active = document.activeElement;
+  if (active instanceof HTMLElement && active.matches("input, textarea, select, [contenteditable]")) {
+    return;
+  }
+  if (window.scrollY !== 0 || window.scrollX !== 0) {
+    window.scrollTo(0, 0);
+  }
+  fitInstalledIphone(frame);
+  frame.style.setProperty("--app-h", `${frame.clientHeight}px`);
 }
 
 const trackedFrames = new WeakSet<HTMLElement>();
@@ -78,6 +103,17 @@ function trackFrame(frame: HTMLDivElement | null) {
     new ResizeObserver(publishHeight).observe(frame);
   }
   window.addEventListener("resize", publishHeight);
+  if (isInstalledIphone) {
+    const reset = () => resetInstalledIphone(frame);
+    // After the keyboard or picker goes away, and whenever the page itself scrolls.
+    document.addEventListener("focusout", () => window.setTimeout(reset, 120));
+    window.visualViewport?.addEventListener("resize", reset);
+    window.addEventListener("scroll", reset, { passive: true });
+    window.addEventListener("pageshow", reset);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") reset();
+    });
+  }
 }
 
 createRoot(rootElement).render(

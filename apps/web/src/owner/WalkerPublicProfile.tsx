@@ -39,6 +39,15 @@ export function WalkerPublicProfile({ walkerId, fallbackName, onBack, scrollToTo
   const [walker, setWalker] = useState<PublicWalker | null>(null);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [zoom, setZoom] = useState(false);
+
+  // Escape closes the enlarged photo, like tapping anywhere does.
+  useEffect(() => {
+    if (!zoom) return;
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && setZoom(false);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [zoom]);
 
   useEffect(() => {
     let active = true;
@@ -98,9 +107,20 @@ export function WalkerPublicProfile({ walkerId, fallbackName, onBack, scrollToTo
 
       <section className="glass wpub__card" aria-label={`Perfil de ${name}`}>
         <div className="wpub__top">
-          <span className="wpub__ring">
-            <PhotoInitial className="wpub__avatar" name={name} src={walker.avatarUrl} />
-          </span>
+          {walker.avatarUrl ? (
+            <button
+              type="button"
+              className="wpub__ring wpub__ring--button"
+              onClick={() => setZoom(true)}
+              aria-label={`Ver la foto de ${name}`}
+            >
+              <PhotoInitial className="wpub__avatar" name={name} src={walker.avatarUrl} />
+            </button>
+          ) : (
+            <span className="wpub__ring">
+              <PhotoInitial className="wpub__avatar" name={name} src={walker.avatarUrl} />
+            </span>
+          )}
           <dl className="wpub__stats">
             <div><dd>{walker.stats.walksDone}</dd><dt>Paseos</dt></div>
             <div><dd>{walker.stats.hoursWalked}</dd><dt>Horas</dt></div>
@@ -122,6 +142,21 @@ export function WalkerPublicProfile({ walkerId, fallbackName, onBack, scrollToTo
         ) : null}
         {joined !== null ? <p className="wpub__since">{joined}</p> : null}
       </section>
+
+      {zoom && walker.avatarUrl ? (
+        <div
+          className="wpub-zoom"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Foto de ${name}`}
+          onClick={() => setZoom(false)}
+        >
+          <img className="wpub-zoom__photo" src={walker.avatarUrl} alt={`Foto de ${name}`} />
+          <button type="button" className="wpub-zoom__close" onClick={() => setZoom(false)} autoFocus>
+            Cerrar
+          </button>
+        </div>
+      ) : null}
 
       <section className="glass wpub__card" aria-label="Reseñas">
         <h2 className="wpub__section">Reseñas</h2>

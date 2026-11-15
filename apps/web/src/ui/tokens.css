@@ -108,6 +108,24 @@ p {
   outline-offset: 2px;
 }
 
+/* iOS gives date and time fields an intrinsic minimum width, so they spilled
+   past their card; keep them inside it and read left-aligned like the rest. */
+input:is([type="datetime-local"], [type="date"], [type="time"]) {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: left;
+}
+
+input:is([type="datetime-local"], [type="date"], [type="time"])::-webkit-date-and-time-value {
+  min-height: 1.4em;
+  text-align: left;
+}
+
 /* Tint / tone maps (shared by Card, PetTile, ListRow chips, StatTile) ------ */
 
 [data-tint="surface"] { --tint: var(--c-surface); }
