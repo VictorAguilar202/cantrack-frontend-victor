@@ -3,6 +3,7 @@ import { ApiError } from "../lib/apiError.js";
 import { bogotaDate, formatCop, formatHourBogota, formatWhenBogota } from "../lib/format.js";
 import {
   cancelWalk,
+  fetchApproach,
   fetchLiveWalk,
   fetchOwnerWalks,
   fetchReplay,
@@ -11,6 +12,7 @@ import {
   rateWalk,
   repeatWalk,
   reportNoShow,
+  type Approach,
   type LiveWalk,
   type WalkDetail,
   type WalkItem,
@@ -178,6 +180,7 @@ function WalkDetailView({ walkId, onBack, onRepeated, onChanged }: DetailProps) 
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [live, setLive] = useState<LiveWalk | null>(null);
+  const [coming, setComing] = useState<Approach | null>(null);
   const [replay, setReplay] = useState<MapMarker[] | null>(null);
   const [repeatAt, setRepeatAt] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -228,6 +231,36 @@ function WalkDetailView({ walkId, onBack, onRepeated, onChanged }: DetailProps) 
     };
   }, [canTrack, walkId, load]);
 
+  // From the walker's "Voy en camino" until the check-in: where he is and how he walks here.
+  const canApproach = detail?.allowedActions.includes("approach") === true;
+  useEffect(() => {
+    if (!canApproach) {
+      setComing(null);
+      return;
+    }
+    let stopped = false;
+    async function tick() {
+      try {
+        const next = await fetchApproach(walkId);
+        if (!stopped) {
+          setComing(next);
+        }
+      } catch (failure: unknown) {
+        // 409: the walk started (or was cancelled), so stop and read the detail again.
+        if (failure instanceof ApiError && failure.status === 409 && !stopped) {
+          stopped = true;
+          void load();
+        }
+      }
+    }
+    void tick();
+    const id = window.setInterval(() => void tick(), LIVE_POLL_MS);
+    return () => {
+      stopped = true;
+      window.clearInterval(id);
+    };
+  }, [canApproach, walkId, load]);
+
   async function act(run: () => Promise<unknown>, done: string, kind: string) {
     setIsBusy(true);
     setError(null);
@@ -276,6 +309,18 @@ function WalkDetailView({ walkId, onBack, onRepeated, onChanged }: DetailProps) 
         : [],
     [live],
   );
+
+  const comingMarkers = useMemo<MapMarker[]>(() => {
+    if (coming === null) {
+      return [];
+    }
+    const pins: MapMarker[] = [];
+    if (coming.position !== null) {
+      pins.push({ id: "walker", lat: coming.position.lat, lng: coming.position.lng, label: "Paseador", kind: "live" });
+    }
+    pins.push({ id: "home", lat: coming.pickup.lat, lng: coming.pickup.lng, label: "Tu casa", kind: "next" });
+    return pins;
+  }, [coming]);
 
   const back = (
     <button type="button" className="explore__small owalks__back" onClick={onBack}>← Mis paseos</button>
@@ -377,6 +422,29 @@ function WalkDetailView({ walkId, onBack, onRepeated, onChanged }: DetailProps) 
           </ol>
         </section>
       )}
+
+      {canApproach ? (
+        <section className="glass owalks__card" aria-label="Viene en camino">
+          <div className="owalks__card-head">
+            <h2 className="owalks__card-title">
+              <span className="owalks__live-badge"><span className="owalks__live-dot" aria-hidden="true" /> EN CAMINO</span>
+            </h2>
+            <span className="owalks__muted" role="status">
+              {coming?.position == null
+                ? `Esperando la ubicación de ${walkerName}…`
+                : coming.route !== null
+                  ? `${walkerName} llega en ~${coming.route.minutes} min`
+                  : `${walkerName} viene hacia tu casa`}
+            </span>
+          </div>
+          <MarkersMap
+            label="Mapa de llegada"
+            markers={comingMarkers}
+            path={coming?.route?.geometry ?? null}
+            pathStraight={coming?.route?.source === "straight"}
+          />
+        </section>
+      ) : null}
 
       {canTrack ? (
         <section className="glass owalks__card" aria-label="En vivo">

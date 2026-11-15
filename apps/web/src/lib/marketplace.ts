@@ -391,6 +391,7 @@ export function fetchOwnerWalks(
 }
 
 export type WalkAction =
+  | "approach"
   | "pick"
   | "cancel"
   | "no_show"
@@ -756,6 +757,8 @@ export type DayRouteStop = {
   pickupLat: number;
   pickupLng: number;
   pickupLabel?: string | null;
+  /** When the walker tapped "Voy en camino" on this stop, else null. */
+  enRouteAt?: string | null;
   legKm: number;
   legMinutes: number;
   legSource: "graph" | "straight" | "start";
@@ -803,6 +806,37 @@ export type DayRoute = {
   overdue?: OverdueWalk[];
   active?: ActiveWalk | null;
 };
+
+/** The whole day as one line along the streets: me, stop, stop... */
+export type DayPath = {
+  /** "osrm" follows the streets; "straight" is the direct segments (router unavailable). */
+  source: "osrm" | "straight";
+  distanceKm: number;
+  minutes: number;
+  /** `[[lat, lng], ...]`; empty when there are fewer than two points to join. */
+  geometry: [number, number][];
+};
+
+export function fetchDayRoutePath(walkerId: string, date?: string): Promise<DayPath> {
+  return request(`/walkers/${enc(walkerId)}/route/path${query({ date })}`, { mascot: false });
+}
+
+/** "Voy en camino": from now the owner may follow the walker to the pickup. */
+export function markEnRoute(requestId: string): Promise<{ id: string; enRouteAt: string }> {
+  return request(`/bidding/requests/${enc(requestId)}/en-route`, { method: "POST" });
+}
+
+/** What the owner sees while the walker is coming: his position and the street route to the house. */
+export type Approach = {
+  enRouteAt: string;
+  position: { lat: number; lng: number; updatedAt: string | null } | null;
+  pickup: { lat: number; lng: number };
+  route: DayPath | null;
+};
+
+export function fetchApproach(requestId: string): Promise<Approach> {
+  return request(`/bidding/requests/${enc(requestId)}/approach`, { mascot: false });
+}
 
 export type WalkTransition = { id: string; status: string; walkerId: string | null };
 

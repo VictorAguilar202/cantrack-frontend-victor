@@ -524,6 +524,31 @@
   flex: 1 1 200px;
 }
 
+/* "Voy en camino": a quiet button until he taps it, then a calm status line. */
+.wnav__go {
+  flex: 0 1 auto;
+  min-height: 44px;
+}
+
+.wnav__shared {
+  flex: 1 1 100%;
+  margin: 0;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.wnav__shared::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--lime-deep, #7cb82f);
+  vertical-align: middle;
+}
+
 @container app (max-width: 520px) {
   .wnav__map .pickup-map__canvas {
     height: 340px;

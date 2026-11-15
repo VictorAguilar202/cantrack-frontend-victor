@@ -96,9 +96,11 @@ export function PrivacyPage() {
                 <strong>OpenStreetMap</strong> (mapas y sus tiles),{" "}
                 <strong>Ollama Cloud</strong> (revisa con IA que la foto del perro muestre un perro),{" "}
                 <strong>Open-Meteo</strong> (clima del punto de recogida, sin tu nombre) y{" "}
-                <strong>OSRM</strong> (calcula la ruta a pie entre dos puntos). El paseador asignado ve
-                los datos de recogida, tu teléfono y los contactos que registraste mientras
-                el paseo está activo. No vendemos tus datos.
+                <strong>OSRM</strong> (calcula la ruta a pie; solo recibe coordenadas, nunca nombres). El
+                paseador asignado ve los datos de recogida, tu teléfono y los contactos que
+                registraste mientras el paseo está activo. Tú ves la ubicación del paseador
+                únicamente desde que él toca «Voy en camino» hasta que empieza el paseo, y
+                durante el paseo. No vendemos tus datos.
               </p>
             </section>
 

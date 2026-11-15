@@ -5,10 +5,12 @@ import {
   checkInWalk,
   checkOutWalk,
   fetchDayRoute,
+  fetchDayRoutePath,
   fetchWalkDetail,
   sendGpsPoints,
   walkerCancelWalk,
   type ActiveWalk,
+  type DayPath,
   type DayRoute,
   type DayRouteStop,
   type OverdueWalk,
@@ -467,6 +469,7 @@ function findNavTarget(route: DayRoute | null, requestId: string | null): NavTar
       label: stop.pickupLabel,
       ownerName: stop.ownerName,
       ownerPhone: stop.ownerPhone,
+      enRouteAt: stop.enRouteAt,
     };
   }
   const late = (route.overdue ?? []).find((item) => item.requestId === requestId);
@@ -540,6 +543,8 @@ export function WalkerRoutesScreen({ userId, onGoHome = () => undefined, onGoReq
   const [notice, setNotice] = useState<Notice | null>(null);
   const [focus, setFocus] = useState<{ lat: number; lng: number; key: number } | null>(null);
   const [navId, setNavId] = useState<string | null>(null);
+  // The day as one line along the streets, kept with the day it was asked for.
+  const [dayPath, setDayPath] = useState<{ date: string; line: DayPath } | null>(null);
 
   const demoRef = useRef<Record<string, DayRoute>>({});
 
@@ -552,6 +557,15 @@ export function WalkerRoutesScreen({ userId, onGoHome = () => undefined, onGoReq
     try {
       setRoute(await fetchDayRoute(userId, date));
       setError(null);
+      // The street line is a nicety on top of the route: if it fails, the map keeps
+      // the pin-to-pin trail and the screen carries on.
+      fetchDayRoutePath(userId, date)
+        .then((line) => setDayPath({ date, line }))
+        .catch((failure: unknown) => {
+          if (!(failure instanceof ApiError && failure.status === 429)) {
+            setDayPath(null);
+          }
+        });
     } catch (failure: unknown) {
       if (failure instanceof ApiError && failure.status === 400) {
         setDate(bogotaDate());
@@ -564,6 +578,7 @@ export function WalkerRoutesScreen({ userId, onGoHome = () => undefined, onGoReq
 
   useEffect(() => {
     setRoute(null);
+    setDayPath(null);
     void load();
     const id = window.setInterval(() => void load(), ROUTE_POLL_MS);
     function onVisible() {
@@ -627,6 +642,8 @@ export function WalkerRoutesScreen({ userId, onGoHome = () => undefined, onGoReq
     return pins;
   }, [route]);
 
+  const streetLine = dayPath !== null && dayPath.date === date && dayPath.line.geometry.length > 1 ? dayPath.line : null;
+
   const startWalk = (requestId: string, dog: string | null) => {
     setNavId(null);
     void run(requestId, "check_in", () => checkInWalk(requestId), { kind: "info", text: `Paseo con ${dog ?? "tu perro"} iniciado. Compartimos tu ubicación con el dueño.` });
@@ -650,6 +667,8 @@ export function WalkerRoutesScreen({ userId, onGoHome = () => undefined, onGoReq
           start={route?.start ?? null}
           demo={preview}
           busy={busyId === navTarget.requestId}
+          enRouteAt={navTarget.enRouteAt}
+          onEnRoute={() => void load()}
           onStart={active === null ? () => startWalk(navTarget.requestId, navTarget.dogName) : undefined}
           onClose={() => setNavId(null)}
         />
@@ -756,7 +775,14 @@ export function WalkerRoutesScreen({ userId, onGoHome = () => undefined, onGoReq
       {route !== null && route.stops.length > 0 ? (
         <div className="wroute__grid">
           <div className="wroute__map">
-            <MarkersMap label="Mapa de la ruta" markers={markers} connect focus={focus} />
+            <MarkersMap
+              label="Mapa de la ruta"
+              markers={markers}
+              connect
+              focus={focus}
+              path={streetLine?.geometry ?? null}
+              pathStraight={streetLine?.source === "straight"}
+            />
             {route.start !== null ? (
               <button
                 type="button"

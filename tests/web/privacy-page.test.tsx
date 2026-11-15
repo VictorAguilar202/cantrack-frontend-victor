@@ -36,6 +36,17 @@ describe("Privacy page (/privacidad)", () => {
     }
   });
 
+  it("says when the owner can see the walker, and who computes the walking route", () => {
+    render(<PrivacyPage />);
+    const text = (document.body.textContent ?? "").replace(/\s+/g, " ");
+    // The owner follows the walker only between "Voy en camino" and the check-in.
+    expect(text).toMatch(/Voy en camino/);
+    expect(text).toMatch(/hasta que (empieza|inicia) el paseo/i);
+    // Only coordinates go to the route server, never names.
+    expect(text).toMatch(/OSRM/);
+    expect(text).toMatch(/solo (reciben|recibe) coordenadas/i);
+  });
+
   it("lists the four habeas data rights", () => {
     render(<PrivacyPage />);
     const text = (document.body.textContent ?? "").toLowerCase();
