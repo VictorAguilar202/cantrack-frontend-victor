@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchWalkingRoute, type WalkingRoute } from "../lib/marketplace.js";
+import { fetchWalkingRoute, markEnRoute, sendHeartbeat, type WalkingRoute } from "../lib/marketplace.js";
 import { MarkersMap, type MapMarker } from "../map/MarkersMap.js";
 import {
   bearingDeg,
@@ -20,6 +20,11 @@ import "./walker-routes.css";
 export const ARRIVED_KM = 0.05;
 /** Walk this far from the last routed point and the streets are asked again. */
 export const REFETCH_KM = 0.06;
+/**
+ * While he is on the way his position goes up this often (the API allows 4 a
+ * minute, so 20 s leaves room for the online switch's own heartbeat).
+ */
+export const SHARE_EVERY_MS = 20_000;
 /** How often the demo walker takes a step, in ms. */
 const DEMO_STEP_MS = 1000;
 
@@ -32,6 +37,8 @@ export type NavTarget = {
   label?: string | null;
   ownerName?: string | null;
   ownerPhone?: string | null;
+  /** When he tapped "Voy en camino" on this stop, else null. */
+  enRouteAt?: string | null;
 };
 
 type Live = { point: Point | null; error: string | null };
@@ -121,9 +128,30 @@ function useStreetRoute(walkerId: string, target: Point, point: Point | null, en
   return route;
 }
 
+/**
+ * "Voy en camino": the owner may follow him from the tap on, so his position is
+ * sent as soon as there is one and then every SHARE_EVERY_MS. Nothing is sent
+ * before the tap (the position stays private until he decides).
+ */
+function useShareWhileEnRoute(point: Point | null, on: boolean): void {
+  const lastSent = useRef(0);
+  useEffect(() => {
+    if (!on || point === null || Date.now() - lastSent.current < SHARE_EVERY_MS) {
+      return;
+    }
+    lastSent.current = Date.now();
+    // A failed beat is not worth interrupting him: the next one tries again.
+    void sendHeartbeat(point.lat, point.lng).catch(() => undefined);
+  }, [on, point]);
+}
+
 export type NavPanelProps = {
   walkerId: string;
   target: NavTarget;
+  /** When he already tapped "Voy en camino" on this stop. */
+  enRouteAt?: string | null;
+  /** Called after a successful tap, so the route screen can refresh. */
+  onEnRoute?: () => void;
   /** Where the server last saw him, used until the browser answers. */
   start?: { lat: number; lng: number } | null;
   demo?: boolean;
@@ -137,11 +165,42 @@ export type NavPanelProps = {
  * Cómo llegar, inside the app: the pickup, his live position, the streets to
  * walk and the turn coming up. No other app opens.
  */
-export function NavPanel({ walkerId, target, start = null, demo = false, busy = false, onStart, onClose }: NavPanelProps) {
+export function NavPanel({
+  walkerId,
+  target,
+  enRouteAt = null,
+  onEnRoute,
+  start = null,
+  demo = false,
+  busy = false,
+  onStart,
+  onClose,
+}: NavPanelProps) {
+  const [shared, setShared] = useState(enRouteAt !== null);
+  const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
   const destination = useMemo<Point>(() => ({ lat: target.lat, lng: target.lng }), [target.lat, target.lng]);
   const { point, error } = useLivePosition(destination, start, demo);
   const [follow, setFollow] = useState(true);
   const [centerKey, setCenterKey] = useState(0);
+
+  useShareWhileEnRoute(point, shared && !demo);
+
+  async function setOff() {
+    setSharing(true);
+    setShareError(null);
+    try {
+      if (!demo) {
+        await markEnRoute(target.requestId);
+      }
+      setShared(true);
+      onEnRoute?.();
+    } catch {
+      setShareError("No pudimos avisar al dueño. Intenta de nuevo.");
+    } finally {
+      setSharing(false);
+    }
+  }
 
   const direct = point === null ? null : haversineKm(point, destination);
   const arrived = direct !== null && direct <= ARRIVED_KM;
@@ -270,6 +329,14 @@ export function NavPanel({ walkerId, target, start = null, demo = false, busy = 
             <PhoneIcon /> Llamar
           </a>
         ) : null}
+        {shared ? (
+          <p className="wnav__shared" role="status">El dueño te ve llegar en su mapa.</p>
+        ) : (
+          <button type="button" className="wg__ghost wnav__go" disabled={sharing} onClick={() => void setOff()}>
+            Voy en camino
+          </button>
+        )}
+        {shareError !== null ? <p className="wg__warn" role="alert">{shareError}</p> : null}
         {onStart !== undefined ? (
           <button type="button" className="wg__primary" disabled={busy} onClick={onStart} aria-label={`Iniciar paseo de ${dog}`}>
             {arrived ? "Llegué · Iniciar paseo" : "Iniciar paseo"}

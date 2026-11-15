@@ -16,6 +16,10 @@ export type MapMarker = {
 
 type LeafletModule = typeof import("leaflet");
 
+/** The routed line: lime on a dark border so it reads on every OpenStreetMap tile. */
+const ROUTE_LIME = "#a8dd3e";
+const ROUTE_BORDER = "#16301f";
+
 type MarkersMapProps = {
   markers: MapMarker[];
   /** Join the markers with a line in the given order (a route). */
@@ -33,6 +37,8 @@ type MarkersMapProps = {
   dashed?: boolean;
   /** `[[lat, lng], ...]` drawn as the way to follow, instead of joining the pins. */
   path?: [number, number][] | null;
+  /** The path is only the straight fallback (the router was down): draw it dashed. */
+  pathStraight?: boolean;
 };
 
 async function loadLeafletFromPackage(): Promise<LeafletModule> {
@@ -52,6 +58,7 @@ export function MarkersMap({
   autoFit = true,
   dashed = false,
   path = null,
+  pathStraight = false,
 }: MarkersMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
@@ -127,18 +134,26 @@ export function MarkersMap({
         .addTo(layer);
     }
     // A routed path wins over joining the pins: it is the way he must walk.
-    let line: [number, number][] | null = null;
     if (path !== null && path.length > 1) {
-      line = path;
+      // Like a navigation app: a dark border under a thick lime stroke, round ends.
+      const shape = { lineCap: "round", lineJoin: "round", ...(pathStraight ? { dashArray: "2 14" } : {}) } as const;
+      L.polyline(path, { color: ROUTE_BORDER, weight: 10, opacity: 0.92, ...shape }).addTo(layer);
+      L.polyline(path, { color: ROUTE_LIME, weight: 5, opacity: 1, ...shape }).addTo(layer);
+      for (const end of [path[0]!, path[path.length - 1]!]) {
+        L.circleMarker(end, {
+          radius: 6,
+          color: ROUTE_BORDER,
+          weight: 3,
+          fillColor: "#ffffff",
+          fillOpacity: 1,
+        }).addTo(layer);
+      }
     } else if (connect && points.length > 1) {
-      line = points;
-    }
-    if (line !== null) {
-      L.polyline(line, {
+      L.polyline(points, {
         color: "#2f7d4f",
         weight: 5,
         opacity: 0.8,
-        ...(dashed && path === null ? { dashArray: "10 10" } : {}),
+        ...(dashed ? { dashArray: "10 10" } : {}),
       }).addTo(layer);
     }
     if (!autoFit) {
@@ -149,7 +164,7 @@ export function MarkersMap({
     } else if (points.length > 1) {
       map.fitBounds(L.latLngBounds(points), { padding: [28, 28], maxZoom: 16 });
     }
-  }, [markers, connect, ready, autoFit, dashed, path]);
+  }, [markers, connect, ready, autoFit, dashed, path, pathStraight]);
 
   const focusKey = focus?.key;
   useEffect(() => {

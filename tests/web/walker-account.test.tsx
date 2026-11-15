@@ -36,6 +36,7 @@ const mockWalks = vi.fn();
 
 vi.mock("../../apps/web/src/lib/marketplace.js", () => ({
   fetchDayRoute: mockRoute,
+  fetchDayRoutePath: vi.fn().mockRejectedValue(new Error("no street line in this test")),
   fetchWalkDetail: mockDetail,
   sendGpsPoints: mockGps,
   checkInWalk: mockCheckIn,
