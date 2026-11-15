@@ -21,6 +21,7 @@ import {
 import { MarkersMap, type MapMarker } from "../map/MarkersMap.js";
 import { DogLoader } from "../ui/DogLoader.js";
 import { PhotoInitial } from "../ui/PhotoInitial.js";
+import { WalkerPublicProfile } from "./WalkerPublicProfile.js";
 import { MascotSprite } from "../mascot/MascotSprite.js";
 import "./explore.css";
 import "./owner-glass.css";
@@ -182,6 +183,7 @@ function WalkDetailView({ walkId, onBack, onRepeated, onChanged }: DetailProps) 
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [hoverStar, setHoverStar] = useState(0);
   const [isBusy, setIsBusy] = useState(false);
+  const [showWalker, setShowWalker] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -279,6 +281,16 @@ function WalkDetailView({ walkId, onBack, onRepeated, onChanged }: DetailProps) 
     <button type="button" className="explore__small owalks__back" onClick={onBack}>← Mis paseos</button>
   );
 
+  if (showWalker && detail?.walker?.id) {
+    return (
+      <WalkerPublicProfile
+        walkerId={detail.walker.id}
+        fallbackName={detail.walker.name ?? undefined}
+        onBack={() => setShowWalker(false)}
+      />
+    );
+  }
+
   if (detail === null) {
     return (
       <div className="explore oglass owalks">
@@ -325,15 +337,23 @@ function WalkDetailView({ walkId, onBack, onRepeated, onChanged }: DetailProps) 
 
       {detail.walker !== null && detail.walker.id !== null ? (
         <section className="glass owalks__walker" aria-label="Paseador">
-          <PhotoInitial className="owalks__avatar" name={walkerName} src={detail.walker.avatarUrl} />
-          <div>
-            <p className="owalks__walker-name">{walkerName}</p>
-            <p className="owalks__walker-meta">
-              {detail.walker.ratingCount > 0 && detail.walker.allTimeRating !== null
-                ? `★ ${detail.walker.allTimeRating.toFixed(1)} · ${detail.walker.ratingCount} ${detail.walker.ratingCount === 1 ? "calificación" : "calificaciones"}`
-                : "Paseador nuevo en CanTrack"}
-            </p>
-          </div>
+          <button
+            type="button"
+            className="owalks__walker-open"
+            onClick={() => setShowWalker(true)}
+            aria-label={`Ver el perfil de ${walkerName}`}
+          >
+            <PhotoInitial className="owalks__avatar" name={walkerName} src={detail.walker.avatarUrl} />
+            <span>
+              <span className="owalks__walker-name">{walkerName}</span>
+              <span className="owalks__walker-meta">
+                {detail.walker.ratingCount > 0 && detail.walker.allTimeRating !== null
+                  ? `★ ${detail.walker.allTimeRating.toFixed(1)} · ${detail.walker.ratingCount} ${detail.walker.ratingCount === 1 ? "calificación" : "calificaciones"}`
+                  : "Paseador nuevo en CanTrack"}
+              </span>
+            </span>
+            <span className="owalks__walker-chevron" aria-hidden="true">›</span>
+          </button>
         </section>
       ) : null}
 

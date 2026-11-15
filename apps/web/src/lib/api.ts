@@ -317,6 +317,12 @@ export async function enrollPhotos(dogId: string, photos: File[]): Promise<Dog> 
   return { ...toDog(row), hasPhotos: true };
 }
 
+/** The reference photos stored for a dog, as signed URLs valid for an hour. */
+export async function fetchDogPhotos(dogId: string): Promise<string[]> {
+  const body = await request<{ photos: string[] }>(`/dogs/${encodeURIComponent(dogId)}/photos`);
+  return body.photos;
+}
+
 export function fetchRoutes(): Promise<Route[]> {
   return request<Route[]>("/routes");
 }

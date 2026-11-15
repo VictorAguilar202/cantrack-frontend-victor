@@ -10,6 +10,7 @@ import {
   sendOffer,
   withdrawOffer,
   type MyOffer,
+  type PaymentMethod,
   type RequestCard,
 } from "../lib/marketplace.js";
 import { MarkersMap } from "../map/MarkersMap.js";
@@ -27,6 +28,8 @@ const MIN_COUNTER_COP = 8000;
 /** Owners get offers for 10 minutes; the ring empties over that window. */
 const OFFER_WINDOW_S = 10 * 60;
 const QUICK_RAISES = [1000, 2000, 3000];
+/** How the owner will pay, as the request card shows it. */
+const PAYMENT_CHIP: Record<PaymentMethod, string> = { cash: "💵 Efectivo", nequi: "📱 Nequi", card: "💳 Tarjeta" };
 
 /** The Spanish copy for the statuses the offer endpoints answer. */
 export function offerError(error: unknown, fallback = "No pudimos enviar tu oferta."): string {
@@ -163,6 +166,9 @@ function InboxCard({ card, onChanged, onDrop, onGoHome }: CardProps) {
             <li className="wg__chip"><ClockIcon />{Math.round(card.durationHours * 60)} min</li>
             <li className="wg__chip"><PinIcon />{km(card.distanceKm)}</li>
             <li className="wg__chip">{formatWhenBogota(card.requestedTime)}</li>
+            {card.paymentMethod ? (
+              <li className="wg__chip">{PAYMENT_CHIP[card.paymentMethod]}</li>
+            ) : null}
           </ul>
         </div>
         <div className="wreq__fare">

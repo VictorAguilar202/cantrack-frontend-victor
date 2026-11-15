@@ -1,8 +1,9 @@
-﻿import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+﻿import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import {
   createDog,
   deleteDog,
   enrollPhotos,
+  fetchDogPhotos,
   fetchDogs,
   fetchTimeline,
   saveDogProfile,
@@ -269,8 +270,30 @@ function DogFicha({
   const [timeline, setTimeline] = useState<TimelineItem[] | null>(null);
   const [timelineBusy, setTimelineBusy] = useState(false);
   const [timelineAttempt, setTimelineAttempt] = useState(0);
+  const [stored, setStored] = useState<string[] | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const suggestionVersion = useRef(0);
+
+  // The photos already enrolled, so the owner sees what the walker matches against.
+  useEffect(() => {
+    if (!open.photos || !dog.hasPhotos || stored !== null) {
+      return;
+    }
+    let active = true;
+    fetchDogPhotos(dog.id)
+      .then((urls) => active && setStored(Array.isArray(urls) ? urls : []))
+      .catch(() => active && setStored([]));
+    return () => {
+      active = false;
+    };
+  }, [dog.id, dog.hasPhotos, open.photos, stored]);
+
+  // Previews of the photos picked but not saved yet.
+  const previews = useMemo(
+    () => (typeof URL.createObjectURL === "function" ? photos.map((file) => URL.createObjectURL(file)) : []),
+    [photos],
+  );
+  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
   useEffect(
     () => () => {
       suggestionVersion.current += 1;
@@ -385,6 +408,7 @@ function DogFicha({
       onPatch({ hasPhotos: true });
       tell("photos", { text: `Listo, ya reconocemos a ${dog.name}` });
       setPhotos([]);
+      setStored(null);
       if (photoInput.current) {
         photoInput.current.value = "";
       }
@@ -574,9 +598,29 @@ function DogFicha({
         summary={dog.hasPhotos ? "Listas" : "Faltan"}
         {...sectionProps("photos")}
       >
+        {previews.length > 0 ? (
+          <div className="dogs__gallery-block">
+            <p className="dogs__gallery-title">Fotos nuevas (sin guardar)</p>
+            <ul className="dogs__gallery" aria-label="Fotos nuevas">
+              {previews.map((url, index) => (
+                <li key={url}><img src={url} alt={`Foto nueva ${index + 1} de ${dog.name}`} /></li>
+              ))}
+            </ul>
+          </div>
+        ) : stored !== null && stored.length > 0 ? (
+          <div className="dogs__gallery-block">
+            <p className="dogs__gallery-title">Tus fotos guardadas</p>
+            <ul className="dogs__gallery" aria-label="Fotos guardadas">
+              {stored.map((url, index) => (
+                <li key={url}><img src={url} alt={`Foto ${index + 1} de ${dog.name}`} /></li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         <p>
-          Sube 3 fotos claras de {dog.name} (de frente, de lado y de cuerpo entero). Sirven para que el
-          paseador confirme que es tu perro al recogerlo.
+          {dog.hasPhotos
+            ? `Para cambiarlas, elige otras 3 fotos de ${dog.name} y guárdalas: reemplazan a las anteriores.`
+            : `Sube 3 fotos claras de ${dog.name} (de frente, de lado y de cuerpo entero). Sirven para que el paseador confirme que es tu perro al recogerlo.`}
         </p>
         <form className="dogs__form" onSubmit={savePhotos}>
           <div className="dogs__field">
@@ -595,7 +639,7 @@ function DogFicha({
             />
           </div>
           <button className="home__cta" disabled={busy !== null}>
-            Guardar fotos
+            {dog.hasPhotos ? "Cambiar fotos" : "Guardar fotos"}
           </button>
           <FeedbackLine value={feedback.photos ?? null} />
         </form>

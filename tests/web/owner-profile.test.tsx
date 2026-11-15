@@ -83,7 +83,7 @@ describe("Owner Perfil", () => {
     mockProfile.mockResolvedValue(profile());
   });
 
-  it("shows the hero: name, badges, stats, dogs and the consent line", async () => {
+  it("shows the hero: name, badges, stats, one Mis perros button and the consent line", async () => {
     await renderScreen();
 
     expect(screen.getByRole("heading", { name: "Camila", level: 1 })).toBeInTheDocument();
@@ -91,7 +91,10 @@ describe("Owner Perfil", () => {
     expect(screen.getByText("Sin teléfono")).toBeInTheDocument();
     const stats = screen.getByText("Paseos hechos").closest("div")!;
     expect(within(stats).getByText("7")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Luna/ })).toBeInTheDocument();
+    // No chip per dog (it gets crowded with several); one button opens Mis perros.
+    expect(screen.queryByRole("button", { name: /Luna/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ver mis perros" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Modo paseador" })).toBeInTheDocument();
     expect(screen.getByText("Aceptaste la política de datos (2026-10) el 25 oct 2026")).toBeInTheDocument();
   });
 

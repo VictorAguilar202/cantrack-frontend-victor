@@ -11,6 +11,7 @@ const api = vi.hoisted(() => ({
   updateDog: vi.fn(),
   deleteDog: vi.fn(),
   enrollPhotos: vi.fn(),
+  fetchDogPhotos: vi.fn(),
   suggestDogTraits: vi.fn(),
   saveDogProfile: vi.fn(),
   fetchTimeline: vi.fn(),
@@ -29,6 +30,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   api.fetchDogs.mockResolvedValue([dog]);
   api.enrollPhotos.mockResolvedValue(undefined);
+  api.fetchDogPhotos.mockResolvedValue([]);
   api.suggestDogTraits.mockResolvedValue({ breed: "Golden Retriever", size: "large" });
   api.updateDog.mockImplementation(async (_id, patch) => ({ ...dog, ...patch }));
   resizeImage.mockImplementation(async (file) => file);
@@ -120,6 +122,16 @@ describe("Mis perros: list and creation", () => {
 });
 
 describe("Fotos de reconocimiento", () => {
+  it("shows the stored photos and offers to change them", async () => {
+    api.fetchDogs.mockResolvedValue([{ ...dog, hasPhotos: true }]);
+    api.fetchDogPhotos.mockResolvedValue(["https://x/0.webp", "https://x/1.webp", "https://x/2.webp"]);
+    await openPhotos();
+    const gallery = await screen.findByRole("list", { name: "Fotos guardadas" });
+    expect(within(gallery).getAllByRole("img")).toHaveLength(3);
+    expect(api.fetchDogPhotos).toHaveBeenCalledWith("dog-1");
+    expect(screen.getByRole("button", { name: "Cambiar fotos" })).toBeInTheDocument();
+  });
+
   it.each([0, 1, 2, 4])("rejects %i photos", async (count) => {
     const user = await openPhotos();
     const files = [...photos(), new File(["image"], "extra.png", { type: "image/png" })].slice(0, count);

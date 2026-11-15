@@ -459,6 +459,50 @@ button.ui-listrow:hover {
 
 /* Avatar ----------------------------------------------------------------------- */
 
+/* ModeSwitch: the big owner/walker switch at the foot of each profile. */
+.mode-switch {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.mode-switch__btn {
+  min-height: 56px;
+  width: 100%;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--lime-bright, #b6e35a), var(--lime-deep, #7cb82f));
+  color: var(--lime-ink, #10240a);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 24px -10px rgb(0 0 0 / 45%);
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), filter 200ms ease;
+}
+
+.mode-switch__btn:active {
+  transform: scale(0.97);
+}
+
+.mode-switch__btn:disabled {
+  filter: saturate(0.5);
+  cursor: progress;
+}
+
+.mode-switch__btn:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+.mode-switch__hint {
+  margin: 0;
+  color: rgb(255 255 255 / 78%);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 /* PhotoInitial: a screen's initial badge that carries a photo instead. */
 [data-photo] {
   overflow: hidden;

@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { AccountSettings, accountError } from "../account/AccountSettings.js";
+import { ModeSwitch } from "../account/ModeSwitch.js";
 import { ApiError } from "../lib/apiError.js";
 import { formatCop, formatWhenBogota } from "../lib/format.js";
 import { resizeImage } from "../lib/image.js";
@@ -561,6 +562,8 @@ export function WalkerProfileScreen({ userId, onSignOut }: WalkerProfileScreenPr
           <AccountSettings role="walker" userId={userId} onSignOut={onSignOut} />
         </div>
       </Section>
+
+      <ModeSwitch role="walker" />
     </div>
   );
 }

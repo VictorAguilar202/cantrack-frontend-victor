@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { AccountSettings, accountError } from "../account/AccountSettings.js";
+import { ModeSwitch } from "../account/ModeSwitch.js";
 import { ApiError } from "../lib/apiError.js";
 import { resizeImage } from "../lib/image.js";
 import { saveHomePoint } from "../lib/homePoint.js";
@@ -358,12 +359,6 @@ export function OwnerProfileScreen({ userId, onSignOut, onGo }: OwnerProfileScre
           <div><dt>Favoritos</dt><dd>{favorites}</dd></div>
         </dl>
         <div className="oprofile__dogs">
-          {profile.dogs.map((dog) => (
-            <button key={dog.id} type="button" className="oprofile__dog" onClick={() => onGo?.("dogs")} title={dog.breed ?? undefined}>
-              <span className="oprofile__dog-initial" aria-hidden="true">{dog.name.slice(0, 1).toUpperCase()}</span>
-              {dog.name}
-            </button>
-          ))}
           <button type="button" className="oprofile__dog oprofile__dog--add" onClick={() => onGo?.("dogs")}>
             {profile.dogs.length === 0 ? "Agrega tu primer perro" : "Ver mis perros"}
           </button>
@@ -532,6 +527,8 @@ export function OwnerProfileScreen({ userId, onSignOut, onGo }: OwnerProfileScre
           <AccountSettings role="owner" userId={userId} onSignOut={onSignOut} />
         </div>
       </Section>
+
+      <ModeSwitch role="owner" />
     </div>
   );
 }

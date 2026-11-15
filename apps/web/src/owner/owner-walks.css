@@ -518,6 +518,7 @@
 }
 
 .owalks__walker-name {
+  display: block;
   margin: 0;
   font-family: var(--display);
   font-size: 1.15rem;
@@ -525,6 +526,7 @@
 }
 
 .owalks__walker-meta {
+  display: block;
   margin: 2px 0 0;
   color: rgb(255 255 255 / 80%);
   font-size: 13px;

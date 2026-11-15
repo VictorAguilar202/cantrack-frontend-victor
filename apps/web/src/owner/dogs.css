@@ -133,14 +133,49 @@
   color: rgb(255 255 255 / 60%);
 }
 
+/* A subtle white ring on focus instead of the lime glow. */
 .dogs__input:focus {
   outline: none;
-  border-color: var(--lime-text);
-  box-shadow: 0 0 0 4px rgb(166 212 74 / 25%);
+  border-color: rgb(255 255 255 / 70%);
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 14%);
 }
 
+/* The notes box reads as a sheet to write on: a rectangle, not a pill. */
 textarea.dogs__input {
+  border-radius: 10px;
   resize: vertical;
+}
+
+.dogs__gallery-block {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.dogs__gallery-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: rgb(255 255 255 / 85%);
+}
+
+.dogs__gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dogs__gallery img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid rgb(255 255 255 / 30%);
+  border-radius: 12px;
+  object-fit: cover;
+  background: rgb(255 255 255 / 10%);
 }
 
 .dogs__input[type="file"] {

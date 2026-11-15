@@ -16,7 +16,9 @@ import {
   parseRequestText,
   pickOffer,
   raiseRequest,
+  saveOwnerProfile,
   type BiddingRequestInput,
+  type PaymentMethod,
   type FareSuggestion,
   type Offer,
   type OwnerRequestItem,
@@ -26,6 +28,7 @@ import { PickupMap } from "../map/PickupMap.js";
 import { parsePin } from "../map/pasto.js";
 import { MascotSprite } from "../mascot/MascotSprite.js";
 import { PhotoInitial } from "../ui/PhotoInitial.js";
+import { WalkerPublicProfile } from "./WalkerPublicProfile.js";
 import "./explore.css";
 import "./owner-glass.css";
 import "./oexplore.css";
@@ -117,6 +120,10 @@ function quickTimes(now: Date): { label: string; value: string }[] {
     .map((option) => ({ label: option.label, value: toLocalInput(option.date) }));
 }
 
+const PAYMENT_METHODS: PaymentMethod[] = ["cash", "nequi", "card"];
+const PAYMENT_LABEL: Record<PaymentMethod, string> = { cash: "Efectivo", nequi: "Nequi", card: "Tarjeta" };
+const PAYMENT_ICON: Record<PaymentMethod, string> = { cash: "💵", nequi: "📱", card: "💳" };
+
 function initial(name: string | null | undefined): string {
   return (name ?? "?").trim().slice(0, 1).toUpperCase() || "?";
 }
@@ -126,12 +133,14 @@ function OfferCard({
   isBest,
   isFavorite,
   onPick,
+  onView,
   isBusy,
 }: {
   offer: Offer;
   isBest: boolean;
   isFavorite: boolean;
   onPick: (offer: Offer) => void;
+  onView: (offer: Offer) => void;
   isBusy: boolean;
 }) {
   const name = offer.walkerName ?? "Paseador";
@@ -147,10 +156,14 @@ function OfferCard({
   ].filter((text): text is string => text !== null && text !== "");
   return (
     <li className="glass oexplore__offer" data-best={isBest ? "" : undefined}>
-      <PhotoInitial className="oexplore__avatar" name={initial(name)} src={offer.walkerAvatarUrl} />
+      <button type="button" className="oexplore__view" onClick={() => onView(offer)} aria-label={`Ver el perfil de ${name}`}>
+        <PhotoInitial className="oexplore__avatar" name={initial(name)} src={offer.walkerAvatarUrl} />
+      </button>
       <div className="oexplore__offer-main">
         {isBest ? <span className="oexplore__best">Mejor opción · {strongestReason(offer.scoreParts)}</span> : null}
-        <strong className="oexplore__offer-name">{name}</strong>
+        <button type="button" className="oexplore__view" onClick={() => onView(offer)} tabIndex={-1}>
+          <strong className="oexplore__offer-name">{name}</strong>
+        </button>
         <span className="oexplore__offer-rating">
           {rating}
           {walks !== null ? ` · ${walks}` : ""}
@@ -202,6 +215,7 @@ function OffersPanel({ request, favorites, onPicked, onRaised, onCancelled, onCl
   const [actionError, setActionError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [viewing, setViewing] = useState<Offer | null>(null);
   const etag = useRef<string | null>(null);
   const panelRef = useRef<HTMLElement>(null);
   const now = useNow(1000);
@@ -346,9 +360,35 @@ function OffersPanel({ request, favorites, onPicked, onRaised, onCancelled, onCl
             isFavorite={favorites.has(offer.walkerId)}
             isBusy={isBusy}
             onPick={(o) => void pick(o)}
+            onView={setViewing}
           />
         ))}
       </ul>
+
+      {viewing !== null ? (
+        <div className="wpub-overlay" role="dialog" aria-modal="true" aria-label={`Perfil de ${viewing.walkerName ?? "paseador"}`}>
+          <WalkerPublicProfile
+            walkerId={viewing.walkerId}
+            fallbackName={viewing.walkerName ?? undefined}
+            onBack={() => setViewing(null)}
+            scrollToTop={false}
+          />
+          <div className="wpub-overlay__action">
+            <button
+              type="button"
+              className="mode-switch__btn"
+              disabled={isBusy}
+              onClick={() => {
+                const chosen = viewing;
+                setViewing(null);
+                void pick(chosen);
+              }}
+            >
+              Elegir por {formatCop(viewing.priceCop)}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
     </section>
   );
@@ -433,6 +473,8 @@ export function OwnerExploreScreen({ userId, onPicked = () => undefined, onGo }:
   const [requests, setRequests] = useState<OwnerRequestItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<ReadonlySet<string>>(() => new Set());
+  const [payment, setPayment] = useState<PaymentMethod>("cash");
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const now = useNow(30_000);
 
@@ -479,6 +521,9 @@ export function OwnerExploreScreen({ userId, onPicked = () => undefined, onGo }:
       .then((profile) => {
         if (isMounted) {
           setFavorites(new Set(profile.walkers.filter((walker) => walker.favorite).map((walker) => walker.walkerId)));
+          if (profile.paymentMethod) {
+            setPayment(profile.paymentMethod);
+          }
         }
       })
       .catch(() => undefined);
@@ -575,7 +620,15 @@ export function OwnerExploreScreen({ userId, onPicked = () => undefined, onGo }:
       priceCop: fare,
       pickupLat: pin.lat,
       pickupLng: pin.lng,
+      paymentMethod: payment,
     });
+  }
+
+  function choosePayment(next: PaymentMethod) {
+    setPayment(next);
+    setIsPaymentOpen(false);
+    // Remember it as the profile's preferred method; the request works without it.
+    void saveOwnerProfile(userId, { paymentMethod: next }, true).catch(() => undefined);
   }
 
   async function askAssistant() {
@@ -844,6 +897,36 @@ export function OwnerExploreScreen({ userId, onPicked = () => undefined, onGo }:
             {formErrors.map((message) => (
               <p className="explore__error" role="alert" key={message}>{message}</p>
             ))}
+            <div className="oexplore__pay">
+              <button
+                type="button"
+                className="oexplore__pay-current"
+                aria-expanded={isPaymentOpen}
+                aria-label={`Método de pago: ${PAYMENT_LABEL[payment]}. Cambiar`}
+                onClick={() => setIsPaymentOpen((open) => !open)}
+              >
+                <span className="oexplore__pay-icon" aria-hidden="true">{PAYMENT_ICON[payment]}</span>
+                <span className="oexplore__pay-label">{PAYMENT_LABEL[payment]}</span>
+                <span className="oexplore__pay-chevron" aria-hidden="true">{isPaymentOpen ? "⌃" : "›"}</span>
+              </button>
+              {isPaymentOpen ? (
+                <div className="oexplore__pay-options" role="radiogroup" aria-label="Método de pago">
+                  {PAYMENT_METHODS.map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      role="radio"
+                      aria-checked={payment === method}
+                      className="oexplore__pay-option"
+                      onClick={() => choosePayment(method)}
+                    >
+                      <span aria-hidden="true">{PAYMENT_ICON[method]}</span>
+                      {PAYMENT_LABEL[method]}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
             <button type="submit" className="explore__cta" disabled={isSending}>
               {isSending ? "Publicando…" : "Publicar"}
             </button>

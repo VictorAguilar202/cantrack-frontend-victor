@@ -7,6 +7,30 @@ import { rawRequest, request } from "./api.js";
 
 const enc = encodeURIComponent;
 
+/** A walker as any owner may see them (no phone, no email). */
+export type PublicWalker = {
+  walkerId: string;
+  displayName: string | null;
+  bio: string | null;
+  serviceArea: string | null;
+  pricePerWalk: number | null;
+  avatarUrl: string | null;
+  experienceYears: number | null;
+  dogSizes: string[];
+  memberSince: string | null;
+  stats: {
+    walksDone: number;
+    hoursWalked: number;
+    clients: number;
+    rating: { average: number | null; count: number; breakdown: number[] };
+  };
+  reviews: { rating: number; at: string; dogName: string | null }[];
+};
+
+export function fetchPublicWalker(walkerId: string): Promise<PublicWalker> {
+  return request(`/walkers/${enc(walkerId)}/public`);
+}
+
 function json(body: unknown): string {
   return JSON.stringify(body);
 }
@@ -192,6 +216,7 @@ export type BiddingRequestInput = {
   priceCop: number;
   pickupLat: number;
   pickupLng: number;
+  paymentMethod?: PaymentMethod;
 };
 
 export type BiddingRequest = {
@@ -642,6 +667,7 @@ export type RequestCard = {
   priceCop: number;
   pickupLat: number;
   pickupLng: number;
+  paymentMethod?: PaymentMethod | null;
   distanceKm: number;
   myOffer: null | { id: string; priceCop: number; kind: "accept" | "counter" };
 };
