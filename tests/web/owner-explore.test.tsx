@@ -109,6 +109,11 @@ describe("Owner Explorar (bidding)", () => {
     mockNearby.mockResolvedValue({ count: 4, radiusKm: 2 });
     mockOwnerRequests.mockResolvedValue({ items: [], nextCursor: null });
     mockFetchOffers.mockResolvedValue({ offers: [], etag: null });
+    // The pickup field searches on a debounce, so a test that only types must
+    // still get a promise back: a bare mock returns undefined and the rejection
+    // surfaces after the test ends.
+    mockSearch.mockResolvedValue({ status: "ok", results: [] });
+    mockReverse.mockResolvedValue({ status: "ok", label: null, detail: null });
     mockProfile.mockResolvedValue({ walkers: [] });
   });
 
