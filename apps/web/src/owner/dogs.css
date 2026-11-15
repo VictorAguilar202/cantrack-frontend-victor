@@ -136,8 +136,8 @@
 /* A subtle white ring on focus instead of the lime glow. */
 .dogs__input:focus {
   outline: none;
-  border-color: rgb(255 255 255 / 70%);
-  box-shadow: 0 0 0 3px rgb(255 255 255 / 14%);
+  border-color: var(--field-focus-border);
+  box-shadow: var(--field-focus-ring);
 }
 
 /* The notes box reads as a sheet to write on: a rectangle, not a pill. */
@@ -285,7 +285,8 @@ textarea.dogs__input {
   cursor: wait;
 }
 
-.dogs :is(button, summary, input):focus-visible {
+/* Text boxes are left out on purpose: they use the subtle white edge. */
+.dogs :is(button, summary, input[type="checkbox"], input[type="file"]):focus-visible {
   outline: 3px solid var(--lime-text);
   outline-offset: 3px;
 }

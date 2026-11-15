@@ -27,8 +27,8 @@
 }
 
 .wclients__search:focus-visible {
-  outline: 3px solid var(--lime-text, #cdf07a);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--field-focus-border), var(--field-focus-ring);
 }
 
 /* List ---------------------------------------------------------------------- */
@@ -250,8 +250,8 @@
 }
 
 .wclients__textarea:focus-visible {
-  outline: 3px solid var(--lime-text, #cdf07a);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--field-focus-border), var(--field-focus-ring);
 }
 
 .wclients__note-foot {

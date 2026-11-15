@@ -56,8 +56,15 @@
 }
 
 .oglass .explore__input:focus {
-  border-color: var(--lime-text);
-  box-shadow: 0 0 0 4px rgb(205 240 122 / 25%);
+  border-color: var(--field-focus-border);
+  box-shadow: var(--field-focus-ring);
+  outline: none;
+}
+
+/* The bottom sheet is light: there the edge is a soft dark one instead. */
+.oglass .ui-sheet .explore__input:focus {
+  border-color: rgb(20 48 31 / 45%);
+  box-shadow: 0 0 0 3px rgb(20 48 31 / 10%);
 }
 
 .oglass .explore__segments {

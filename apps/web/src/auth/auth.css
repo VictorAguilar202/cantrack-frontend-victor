@@ -471,9 +471,9 @@ body:has(.auth-scene) {
 }
 
 .auth-card .form-input:focus {
-  border-color: var(--lime);
+  border-color: var(--field-focus-border);
   background: rgb(255 255 255 / 20%);
-  box-shadow: 0 0 0 4px rgb(166 212 74 / 30%), inset 0 2px 6px rgb(5 25 50 / 18%);
+  box-shadow: var(--field-focus-ring), inset 0 2px 6px rgb(5 25 50 / 18%);
   outline: none;
 }
 

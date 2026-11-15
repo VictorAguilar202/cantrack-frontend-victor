@@ -610,10 +610,14 @@
 
 .earn__goal-edit:focus-visible,
 .earn__goal-empty:focus-visible,
-.earn__goal-form input:focus-visible,
 .earn__bar-col:focus-visible,
 .earn__hit:focus-visible {
   outline: 3px solid var(--lime-text, #cdf07a);
+  outline-offset: 2px;
+}
+
+.earn__goal-form input:focus-visible {
+  outline: 2px solid var(--field-focus-border);
   outline-offset: 2px;
 }
 
