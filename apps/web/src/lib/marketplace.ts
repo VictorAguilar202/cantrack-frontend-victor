@@ -209,6 +209,30 @@ export function fetchNearbyWalkers(
   return request(`/bidding/nearby-walkers${query({ lat, lng })}`);
 }
 
+/** One place of the pickup field: a bold label, a muted detail and the point. */
+export type AddressResult = {
+  label: string;
+  detail: string;
+  lat: number;
+  lng: number;
+};
+
+/** `unavailable` = the geocoder is down; the field then offers the map instead. */
+export type AddressLookup = {
+  status: "ok" | "unavailable";
+  results: AddressResult[];
+};
+
+/** Addresses and places in Pasto matching what the owner typed (2 to 80 characters). */
+export function searchAddress(text: string): Promise<AddressLookup> {
+  return request(`/geocode/search${query({ q: text })}`);
+}
+
+/** The address nearest a point in Pasto (the full-screen map and "Mi ubicación"). */
+export function reverseAddress(lat: number, lng: number): Promise<AddressLookup> {
+  return request(`/geocode/reverse${query({ lat, lng })}`);
+}
+
 export type BiddingRequestInput = {
   dogId: string;
   windowStart: string;
@@ -217,6 +241,8 @@ export type BiddingRequestInput = {
   pickupLat: number;
   pickupLng: number;
   paymentMethod?: PaymentMethod;
+  /** The address text the owner picked; the pin stays the source of truth. */
+  pickupLabel?: string;
 };
 
 export type BiddingRequest = {
@@ -229,6 +255,7 @@ export type BiddingRequest = {
   priceCop: number;
   pickupLat: number;
   pickupLng: number;
+  pickupLabel?: string | null;
   deadlineAt: string;
 };
 
@@ -668,6 +695,7 @@ export type RequestCard = {
   pickupLat: number;
   pickupLng: number;
   paymentMethod?: PaymentMethod | null;
+  pickupLabel?: string | null;
   distanceKm: number;
   myOffer: null | { id: string; priceCop: number; kind: "accept" | "counter" };
 };
@@ -727,6 +755,7 @@ export type DayRouteStop = {
   requestedTime: string;
   pickupLat: number;
   pickupLng: number;
+  pickupLabel?: string | null;
   legKm: number;
   legMinutes: number;
   legSource: "graph" | "straight" | "start";
@@ -746,6 +775,7 @@ export type OverdueWalk = {
   durationHours: number;
   pickupLat?: number | null;
   pickupLng?: number | null;
+  pickupLabel?: string | null;
 };
 
 /** The walk in progress right now (any day), with its check-in time. */
@@ -760,6 +790,7 @@ export type ActiveWalk = {
   ownerPhone: string | null;
   pickupLat: number | null;
   pickupLng: number | null;
+  pickupLabel?: string | null;
 };
 
 export type DayRoute = {

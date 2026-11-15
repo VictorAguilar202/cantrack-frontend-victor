@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { fetchDogs, type Dog } from "../lib/api.js";
 import { ApiError } from "../lib/apiError.js";
 import { formatCop, formatWhenBogota } from "../lib/format.js";
-import { readHomePoint } from "../lib/homePoint.js";
+import { readSavedHome } from "../lib/homePoint.js";
 import { experienceLabel, sizesLabel, walksLabel } from "../lib/walkerCard.js";
 import {
   WALK_DURATIONS,
@@ -24,8 +24,9 @@ import {
   type OwnerRequestItem,
 } from "../lib/marketplace.js";
 import { MinusIcon, PlusIcon } from "../home/icons.js";
-import { PickupMap } from "../map/PickupMap.js";
-import { parsePin } from "../map/pasto.js";
+import { PickupField, type PickupValue } from "../map/PickupField.js";
+import { clampLabel, isInsidePasto } from "../map/pasto.js";
+import { rememberPickup } from "../map/recentPickups.js";
 import { MascotSprite } from "../mascot/MascotSprite.js";
 import { PhotoInitial } from "../ui/PhotoInitial.js";
 import { WalkerPublicProfile } from "./WalkerPublicProfile.js";
@@ -450,7 +451,8 @@ export type OwnerExploreScreenProps = {
  * accept it or counter, and the owner picks one of the ranked offers.
  */
 export function OwnerExploreScreen({ userId, onPicked = () => undefined, onGo }: OwnerExploreScreenProps) {
-  const start = readHomePoint();
+  // The saved home comes first (Perfil keeps it in localStorage); with none, the owner chooses.
+  const [home, setHome] = useState<PickupValue | null>(() => readSavedHome());
   const [dogs, setDogs] = useState<Dog[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -459,8 +461,7 @@ export function OwnerExploreScreen({ userId, onPicked = () => undefined, onGo }:
   const [when, setWhen] = useState("");
   const [fare, setFare] = useState(15000);
   const [suggestion, setSuggestion] = useState<FareSuggestion | null>(null);
-  const [lat, setLat] = useState(String(start.lat));
-  const [lng, setLng] = useState(String(start.lng));
+  const [pickup, setPickup] = useState<PickupValue | null>(home);
   const [nearby, setNearby] = useState<number | null>(null);
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [highlight, setHighlight] = useState<string[]>([]);
@@ -480,9 +481,10 @@ export function OwnerExploreScreen({ userId, onPicked = () => undefined, onGo }:
 
   // A fare the assistant filled must survive the suggestion refetch it triggers.
   const keepFare = useRef(false);
-  const pin = parsePin(lat, lng);
-  const pinLat = pin?.lat;
-  const pinLng = pin?.lng;
+  // Once the owner touches the field, a late profile answer must not overwrite it.
+  const pickupTouched = useRef(false);
+  const pinLat = pickup?.lat;
+  const pinLng = pickup?.lng;
 
   const loadRequests = useCallback(
     async (cursor?: string | null) => {
@@ -523,6 +525,14 @@ export function OwnerExploreScreen({ userId, onPicked = () => undefined, onGo }:
           setFavorites(new Set(profile.walkers.filter((walker) => walker.favorite).map((walker) => walker.walkerId)));
           if (profile.paymentMethod) {
             setPayment(profile.paymentMethod);
+          }
+          const saved = profile.home;
+          if (saved !== null && saved !== undefined && isInsidePasto(saved.lat, saved.lng)) {
+            const place = { label: clampLabel(saved.label) || "Mi casa", lat: saved.lat, lng: saved.lng };
+            setHome(place);
+            if (!pickupTouched.current) {
+              setPickup((current) => current ?? place);
+            }
           }
         }
       })
@@ -577,6 +587,9 @@ export function OwnerExploreScreen({ userId, onPicked = () => undefined, onGo }:
     setNotice(null);
     try {
       const created = await createBiddingRequest(input);
+      if (input.pickupLabel !== undefined) {
+        rememberPickup({ label: input.pickupLabel, lat: input.pickupLat, lng: input.pickupLng });
+      }
       setActive({
         id: created.id,
         priceCop: created.priceCop,
@@ -605,12 +618,12 @@ export function OwnerExploreScreen({ userId, onPicked = () => undefined, onGo }:
     } else if (startAt.getTime() <= Date.now()) {
       errors.push("La hora del paseo debe ser en el futuro.");
     }
-    if (pin === null) {
-      errors.push("Marca en el mapa dónde recogen a tu perro (dentro de Pasto).");
+    if (pickup === null) {
+      errors.push("Elige dónde recogen a tu perro (dentro de Pasto).");
     }
     setFormErrors(errors);
     setHighlight([]);
-    if (errors.length > 0 || startAt === null || pin === null) {
+    if (errors.length > 0 || startAt === null || pickup === null) {
       return;
     }
     void publish({
@@ -618,8 +631,9 @@ export function OwnerExploreScreen({ userId, onPicked = () => undefined, onGo }:
       windowStart: startAt.toISOString(),
       durationMinutes: minutes,
       priceCop: fare,
-      pickupLat: pin.lat,
-      pickupLng: pin.lng,
+      pickupLat: pickup.lat,
+      pickupLng: pickup.lng,
+      pickupLabel: pickup.label,
       paymentMethod: payment,
     });
   }
@@ -834,14 +848,15 @@ export function OwnerExploreScreen({ userId, onPicked = () => undefined, onGo }:
             </div>
           </section>
 
-          <section className="glass oexplore__step oexplore__map">
+          <section className="glass oexplore__step oexplore__pickup">
             <h2 className="oexplore__step-title">¿Dónde lo recogemos?</h2>
-            <PickupMap
-              lat={lat}
-              lng={lng}
-              onPick={(pickedLat, pickedLng) => {
-                setLat(String(pickedLat));
-                setLng(String(pickedLng));
+            <PickupField
+              value={pickup}
+              home={home}
+              invalid={pickup === null && formErrors.length > 0}
+              onChange={(next) => {
+                pickupTouched.current = true;
+                setPickup(next);
               }}
             />
           </section>

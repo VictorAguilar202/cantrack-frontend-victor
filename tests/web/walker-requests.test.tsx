@@ -80,6 +80,18 @@ describe("Walker Solicitudes", () => {
     expect(screen.getByText(/Cierra en/)).toBeInTheDocument();
   });
 
+  it("shows the address the owner picked, and nothing for an old request without one", async () => {
+    mockOpen.mockResolvedValue([
+      card({ pickupLabel: "Carrera 27 15-30" }),
+      card({ id: "req-2", dogName: "Max", pickupLabel: null }),
+    ]);
+    await renderScreen();
+
+    expect(await screen.findByText("Carrera 27 15-30")).toBeInTheDocument();
+    expect(screen.getAllByText(/^a 0,8 km$/)).toHaveLength(2);
+    expect(screen.getAllByRole("listitem").filter((item) => item.className.includes("wg__chip--address"))).toHaveLength(1);
+  });
+
   it("accepts the owner's fare in one tap with the ETA at 4,5 km/h", async () => {
     mockSend.mockResolvedValue({ id: "o1", score: 0.8, priceCop: 20000, kind: "accept" });
     const user = await renderScreen();

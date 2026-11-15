@@ -165,6 +165,7 @@ function InboxCard({ card, onChanged, onDrop, onGoHome }: CardProps) {
           <ul className="wg__chips">
             <li className="wg__chip"><ClockIcon />{Math.round(card.durationHours * 60)} min</li>
             <li className="wg__chip"><PinIcon />{km(card.distanceKm)}</li>
+            {card.pickupLabel ? <li className="wg__chip wg__chip--address" title={card.pickupLabel}>{card.pickupLabel}</li> : null}
             <li className="wg__chip">{formatWhenBogota(card.requestedTime)}</li>
             {card.paymentMethod ? (
               <li className="wg__chip">{PAYMENT_CHIP[card.paymentMethod]}</li>

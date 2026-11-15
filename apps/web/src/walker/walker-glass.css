@@ -424,3 +424,26 @@
     transition: none;
   }
 }
+
+/* The address the owner picked: one line, cut with an ellipsis instead of widening the card. */
+.wg__chip--address {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wnav__address {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  color: var(--lime-text, #cdf07a);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.wnav__address svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}

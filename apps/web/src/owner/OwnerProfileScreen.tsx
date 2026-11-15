@@ -179,7 +179,7 @@ export function OwnerProfileScreen({ userId, onSignOut, onGo }: OwnerProfileScre
     setEmPhone(next.emergency?.phone ?? "");
     setVetName(next.vet?.name ?? "");
     setVetPhone(next.vet?.phone ?? "");
-    saveHomePoint(next.home ? { lat: next.home.lat, lng: next.home.lng } : null);
+    saveHomePoint(next.home ? { lat: next.home.lat, lng: next.home.lng, label: next.home.label } : null);
   }
 
   useEffect(() => {

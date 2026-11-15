@@ -120,3 +120,30 @@ export function CloseIcon() {
     </Line>
   );
 }
+
+export function MapIcon() {
+  return (
+    <Line>
+      <path d="M9 5 3.5 7v12L9 17m0-12 6 2m-6-2v12m6-10 5.5-2v12L15 19m0-12v12m0 0-6-2" />
+    </Line>
+  );
+}
+
+export function CrosshairIcon() {
+  return (
+    <Line>
+      <circle cx="12" cy="12" r="6.5" />
+      <circle cx="12" cy="12" r="1.8" />
+      <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3" />
+    </Line>
+  );
+}
+
+export function ClockIcon() {
+  return (
+    <Line>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </Line>
+  );
+}

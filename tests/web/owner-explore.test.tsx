@@ -5,8 +5,8 @@ import userEvent from "@testing-library/user-event";
 
 // Explorar (owner), docs/frontend/explorar.md: fare suggestion, nearby walkers,
 // POST /bidding/requests, the optional assistant, ranked offers polled with an
-// ETag, pick, and the paginated list of open requests. The map is stubbed and
-// every API call is mocked.
+// ETag, pick, and the paginated list of open requests. The pickup field starts from the saved
+// home (localStorage); the geocoder and every API call are mocked.
 
 const mockFetchDogs = vi.fn();
 const mockFareSuggestion = vi.fn();
@@ -19,6 +19,8 @@ const mockOwnerRequests = vi.fn();
 const mockCancel = vi.fn();
 const mockRaise = vi.fn();
 const mockProfile = vi.fn();
+const mockSearch = vi.fn();
+const mockReverse = vi.fn();
 
 vi.mock("../../apps/web/src/lib/api.js", () => ({ fetchDogs: mockFetchDogs }));
 vi.mock("../../apps/web/src/lib/marketplace.js", () => ({
@@ -33,13 +35,13 @@ vi.mock("../../apps/web/src/lib/marketplace.js", () => ({
   cancelWalk: mockCancel,
   raiseRequest: mockRaise,
   fetchOwnerProfile: mockProfile,
+  searchAddress: mockSearch,
+  reverseAddress: mockReverse,
 }));
 
-vi.mock("../../apps/web/src/map/PickupMap.js", () => ({
-  PickupMap: ({ lat, lng }: { lat: string; lng: string }) => (
-    <div data-testid="map" data-lat={lat} data-lng={lng} />
-  ),
-}));
+const HOME_KEY = "cantrack.homePoint";
+const RECENTS_KEY = "cantrack.recentPickups";
+const SAVED_HOME = { lat: 1.2136, lng: -77.2811, label: "Calle 18 22-10" };
 
 const DOGS = [
   { id: "dog-1", name: "Luna" },
@@ -97,9 +99,11 @@ async function fillAndPublish(user: ReturnType<typeof userEvent.setup>) {
 describe("Owner Explorar (bidding)", () => {
   beforeEach(() => {
     cleanup();
-    for (const mock of [mockFetchDogs, mockFareSuggestion, mockNearby, mockCreate, mockParse, mockFetchOffers, mockPick, mockOwnerRequests, mockCancel, mockRaise, mockProfile]) {
+    for (const mock of [mockFetchDogs, mockFareSuggestion, mockNearby, mockCreate, mockParse, mockFetchOffers, mockPick, mockOwnerRequests, mockCancel, mockRaise, mockProfile, mockSearch, mockReverse]) {
       mock.mockReset();
     }
+    window.localStorage.clear();
+    window.localStorage.setItem(HOME_KEY, JSON.stringify(SAVED_HOME));
     mockFetchDogs.mockResolvedValue(DOGS);
     mockFareSuggestion.mockResolvedValue({ suggestedCop: 15000, basis: "market", sampleSize: 12, minCop: 8000, stepCop: 1000 });
     mockNearby.mockResolvedValue({ count: 4, radiusKm: 2 });
@@ -160,6 +164,9 @@ describe("Owner Explorar (bidding)", () => {
           dogId: "dog-1",
           durationMinutes: 45,
           priceCop: 15000,
+          pickupLat: 1.2136,
+          pickupLng: -77.2811,
+          pickupLabel: "Calle 18 22-10",
           windowStart: new Date("2099-01-01T10:00").toISOString(),
         }),
       ),
@@ -177,6 +184,106 @@ describe("Owner Explorar (bidding)", () => {
     expect(within(cards[1]!).getByText("Sara")).toBeInTheDocument();
     expect(within(cards[1]!).getByText("Nuevo")).toBeInTheDocument();
     expect(within(cards[1]!).queryByText(/Mejor opción/)).not.toBeInTheDocument();
+  });
+
+  describe("the pickup field", () => {
+    it("starts on the saved home, as text", async () => {
+      await renderScreen();
+      expect(screen.getByRole("combobox", { name: "Dirección de recogida" })).toHaveValue("Calle 18 22-10");
+    });
+
+    it("starts empty with no saved home, does not suggest a fare yet, and asks for a pickup on publish", async () => {
+      window.localStorage.clear();
+      const user = await renderScreen();
+      expect(screen.getByRole("combobox", { name: "Dirección de recogida" })).toHaveValue("");
+      expect(mockFareSuggestion).not.toHaveBeenCalled();
+
+      await user.click(screen.getByRole("radio", { name: "Luna" }));
+      await user.type(screen.getByLabelText("Día y hora"), "2099-01-01T10:00");
+      await user.click(screen.getByRole("button", { name: "Publicar" }));
+
+      expect(screen.getByText("Elige dónde recogen a tu perro (dentro de Pasto).")).toBeInTheDocument();
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it("a home saved outside Pasto is ignored", async () => {
+      window.localStorage.setItem(HOME_KEY, JSON.stringify({ lat: 4.6, lng: -74.08, label: "Bogotá" }));
+      await renderScreen();
+      expect(screen.getByRole("combobox", { name: "Dirección de recogida" })).toHaveValue("");
+    });
+
+    it("a home saved before labels existed still fills the field", async () => {
+      window.localStorage.setItem(HOME_KEY, JSON.stringify({ lat: 1.2136, lng: -77.2811 }));
+      await renderScreen();
+      expect(screen.getByRole("combobox", { name: "Dirección de recogida" })).toHaveValue("Mi casa");
+    });
+
+    it("fills the field from the profile's home when nothing was saved on this device", async () => {
+      window.localStorage.clear();
+      mockProfile.mockResolvedValue({ walkers: [], home: { lat: 1.22, lng: -77.28, label: "Carrera 27 15-30" } });
+      await renderScreen();
+      await waitFor(() =>
+        expect(screen.getByRole("combobox", { name: "Dirección de recogida" })).toHaveValue("Carrera 27 15-30"),
+      );
+      await waitFor(() => expect(mockFareSuggestion).toHaveBeenCalledWith(45, 1.22, -77.28));
+    });
+
+    it("does not overwrite what the owner already chose with a late profile answer", async () => {
+      window.localStorage.clear();
+      let answer: (value: unknown) => void = () => undefined;
+      mockProfile.mockImplementation(() => new Promise((resolve) => (answer = resolve)));
+      mockSearch.mockResolvedValue({ status: "ok", results: [{ label: "Plaza de Nariño", detail: "Centro, Pasto", lat: 1.2146, lng: -77.2786 }] });
+      const user = await renderScreen();
+
+      await user.type(screen.getByRole("combobox", { name: "Dirección de recogida" }), "plaza");
+      await user.click(await screen.findByRole("option", { name: /Plaza de Nariño/ }));
+      answer({ walkers: [], home: { lat: 1.22, lng: -77.28, label: "Carrera 27 15-30" } });
+
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      expect(screen.getByRole("combobox", { name: "Dirección de recogida" })).toHaveValue("Plaza de Nariño");
+    });
+
+    it("publishes the address the owner typed and picked, and remembers it for next time", async () => {
+      mockCreate.mockResolvedValue(created());
+      mockSearch.mockResolvedValue({ status: "ok", results: [{ label: "Plaza de Nariño", detail: "Centro, Pasto", lat: 1.2146, lng: -77.2786 }] });
+      const user = await renderScreen();
+
+      const box = screen.getByRole("combobox", { name: "Dirección de recogida" });
+      await user.clear(box);
+      await user.type(box, "plaza");
+      await user.click(await screen.findByRole("option", { name: /Plaza de Nariño/ }));
+      await waitFor(() => expect(mockFareSuggestion).toHaveBeenLastCalledWith(45, 1.2146, -77.2786));
+      await fillAndPublish(user);
+
+      await waitFor(() =>
+        expect(mockCreate).toHaveBeenCalledWith(
+          expect.objectContaining({ pickupLat: 1.2146, pickupLng: -77.2786, pickupLabel: "Plaza de Nariño" }),
+        ),
+      );
+      expect(JSON.parse(window.localStorage.getItem(RECENTS_KEY) ?? "[]")).toEqual([
+        { label: "Plaza de Nariño", lat: 1.2146, lng: -77.2786 },
+      ]);
+    });
+
+    it("typing without picking leaves no pickup, so publishing is refused", async () => {
+      const user = await renderScreen();
+      const box = screen.getByRole("combobox", { name: "Dirección de recogida" });
+      await user.clear(box);
+      await user.type(box, "pla");
+      await fillAndPublish(user);
+
+      expect(screen.getByText("Elige dónde recogen a tu perro (dentro de Pasto).")).toBeInTheDocument();
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it("Enter in the box never publishes the form", async () => {
+      const user = await renderScreen();
+      await user.click(screen.getByRole("radio", { name: "Luna" }));
+      await user.type(screen.getByLabelText("Día y hora"), "2099-01-01T10:00");
+      await user.click(screen.getByRole("combobox", { name: "Dirección de recogida" }));
+      await user.keyboard("{Enter}");
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
   });
 
   it("picks an offer and hands over to Mis paseos", async () => {

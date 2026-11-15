@@ -38,3 +38,11 @@ export function parsePin(lat: string, lng: string): { lat: number; lng: number }
   }
   return { lat: latValue, lng: lngValue };
 }
+
+/** The most characters the API stores for a pickup label (`pickup_label`). */
+export const MAX_LABEL_LENGTH = 120;
+
+/** A label the API will accept: trimmed and no longer than `MAX_LABEL_LENGTH`. */
+export function clampLabel(label: string): string {
+  return label.trim().slice(0, MAX_LABEL_LENGTH);
+}

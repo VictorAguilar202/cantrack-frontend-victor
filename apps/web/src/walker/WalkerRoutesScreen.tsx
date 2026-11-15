@@ -375,6 +375,7 @@ function NextStopCard({
         <li className="wg__chip"><ClockIcon /> {formatHourBogota(stop.requestedTime)}</li>
         {stop.durationHours !== undefined ? <li className="wg__chip">{Math.round(stop.durationHours * 60)} min</li> : null}
         {hasStart ? <li className="wg__chip"><PinIcon /> a {km(stop.legKm)} km · {stop.legMinutes} min</li> : null}
+        {stop.pickupLabel ? <li className="wg__chip wg__chip--address" title={stop.pickupLabel}>{stop.pickupLabel}</li> : null}
       </ul>
       <div className="wroute__row">
         <button type="button" className="wg__ghost wroute__link" onClick={onNavigate} aria-label={`Cómo llegar a ${dog}`}>
@@ -463,6 +464,7 @@ function findNavTarget(route: DayRoute | null, requestId: string | null): NavTar
       dogName: stop.dogName,
       lat: stop.pickupLat,
       lng: stop.pickupLng,
+      label: stop.pickupLabel,
       ownerName: stop.ownerName,
       ownerPhone: stop.ownerPhone,
     };
@@ -472,7 +474,13 @@ function findNavTarget(route: DayRoute | null, requestId: string | null): NavTar
       || late.pickupLng === null || late.pickupLng === undefined) {
     return null;
   }
-  return { requestId: late.requestId, dogName: late.dogName, lat: late.pickupLat, lng: late.pickupLng };
+  return {
+    requestId: late.requestId,
+    dogName: late.dogName,
+    lat: late.pickupLat,
+    lng: late.pickupLng,
+    label: late.pickupLabel,
+  };
 }
 
 export type WalkerRoutesScreenProps = {
@@ -516,6 +524,7 @@ function applyDemo(route: DayRoute, requestId: string, action: Action): DayRoute
       ownerPhone: stop?.ownerPhone ?? null,
       pickupLat: stop?.pickupLat ?? null,
       pickupLng: stop?.pickupLng ?? null,
+      pickupLabel: stop?.pickupLabel ?? null,
     },
   };
 }

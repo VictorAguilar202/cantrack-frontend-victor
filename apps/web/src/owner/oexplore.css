@@ -72,6 +72,7 @@
 
 .oexplore__form {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -170,15 +171,10 @@
   grid-template-columns: repeat(5, 1fr);
 }
 
-/* Map: a shorter canvas inside its card */
-.oexplore__map .pickup-map {
-  margin: 0;
-}
-
-.oexplore__map .pickup-map__canvas {
-  height: 260px;
-  min-height: 0;
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 30%);
+/* Pickup: the suggestions list hangs below the card, so the card must stack above the next ones
+   (every glass card is its own stacking context and later ones paint over earlier ones). */
+.oexplore__pickup {
+  z-index: 3;
 }
 
 /* Fare */
@@ -661,10 +657,6 @@
     flex: 1 1 100%;
     align-items: center;
     justify-content: space-between;
-  }
-
-  .oexplore__map .pickup-map__canvas {
-    height: 220px;
   }
 }
 

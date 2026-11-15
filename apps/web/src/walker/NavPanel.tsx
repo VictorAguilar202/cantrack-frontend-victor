@@ -28,6 +28,8 @@ export type NavTarget = {
   dogName: string | null;
   lat: number;
   lng: number;
+  /** The address text the owner picked, when there is one. */
+  label?: string | null;
   ownerName?: string | null;
   ownerPhone?: string | null;
 };
@@ -219,6 +221,7 @@ export function NavPanel({ walkerId, target, start = null, demo = false, busy = 
           <div>
             <strong className="wnav__km" role="status">{headline}</strong>
             <p className="wg__muted">{hint}</p>
+            {target.label ? <p className="wnav__address"><PinIcon /> {target.label}</p> : null}
           </div>
         </div>
         {error !== null ? <p className="wg__warn" role="alert">{error}</p> : null}
