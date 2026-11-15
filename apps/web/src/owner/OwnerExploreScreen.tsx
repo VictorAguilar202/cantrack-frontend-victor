@@ -25,6 +25,7 @@ import { MinusIcon, PlusIcon } from "../home/icons.js";
 import { PickupMap } from "../map/PickupMap.js";
 import { parsePin } from "../map/pasto.js";
 import { MascotSprite } from "../mascot/MascotSprite.js";
+import { PhotoInitial } from "../ui/PhotoInitial.js";
 import "./explore.css";
 import "./owner-glass.css";
 import "./oexplore.css";
@@ -146,7 +147,7 @@ function OfferCard({
   ].filter((text): text is string => text !== null && text !== "");
   return (
     <li className="glass oexplore__offer" data-best={isBest ? "" : undefined}>
-      <span className="oexplore__avatar" aria-hidden="true">{initial(name)}</span>
+      <PhotoInitial className="oexplore__avatar" name={initial(name)} src={offer.walkerAvatarUrl} />
       <div className="oexplore__offer-main">
         {isBest ? <span className="oexplore__best">Mejor opción · {strongestReason(offer.scoreParts)}</span> : null}
         <strong className="oexplore__offer-name">{name}</strong>

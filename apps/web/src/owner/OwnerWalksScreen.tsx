@@ -20,6 +20,7 @@ import {
 } from "../lib/marketplace.js";
 import { MarkersMap, type MapMarker } from "../map/MarkersMap.js";
 import { DogLoader } from "../ui/DogLoader.js";
+import { PhotoInitial } from "../ui/PhotoInitial.js";
 import { MascotSprite } from "../mascot/MascotSprite.js";
 import "./explore.css";
 import "./owner-glass.css";
@@ -324,7 +325,7 @@ function WalkDetailView({ walkId, onBack, onRepeated, onChanged }: DetailProps) 
 
       {detail.walker !== null && detail.walker.id !== null ? (
         <section className="glass owalks__walker" aria-label="Paseador">
-          <span className="owalks__avatar" aria-hidden="true">{walkerName.slice(0, 1).toUpperCase()}</span>
+          <PhotoInitial className="owalks__avatar" name={walkerName} src={detail.walker.avatarUrl} />
           <div>
             <p className="owalks__walker-name">{walkerName}</p>
             <p className="owalks__walker-meta">
@@ -512,7 +513,7 @@ function WalkCard({ walk, now, onOpen }: { walk: WalkItem; now: Date; onOpen: ()
   return (
     <li>
       <button type="button" className="glass owalks__walk" data-status={walk.status} onClick={onOpen} aria-label={`Abrir paseo de ${dog}`}>
-        <span className="owalks__avatar" aria-hidden="true">{dog.slice(0, 1).toUpperCase()}</span>
+        <PhotoInitial className="owalks__avatar" name={dog} src={walk.walkerAvatarUrl} />
         <span className="owalks__walk-main">
           <span className="owalks__walk-top">
             <strong>{dog}</strong>

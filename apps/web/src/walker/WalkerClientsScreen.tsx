@@ -12,6 +12,7 @@ import {
 import { MascotSprite } from "../mascot/MascotSprite.js";
 import { Avatar } from "../ui/Avatar.js";
 import { DogLoader } from "../ui/DogLoader.js";
+import { PhotoInitial } from "../ui/PhotoInitial.js";
 import { PhoneIcon, PinIcon, ShieldIcon } from "../auth/icons.js";
 import "./walker-glass.css";
 import "./walker-clients.css";
@@ -513,7 +514,7 @@ export function WalkerClientsScreen({ userId, onGoRoutes }: WalkerClientsScreenP
           const name = client.ownerName ?? "Dueño";
           return (
             <li key={client.ownerId} className="glass wclients__card wg__rise">
-              <span className="wg__avatar" aria-hidden="true">{name.charAt(0).toUpperCase()}</span>
+              <PhotoInitial className="wg__avatar" name={name} src={client.ownerAvatarUrl} />
               <div className="wclients__main">
                 <strong className="wclients__name">{name}</strong>
                 <ul className="wg__chips">

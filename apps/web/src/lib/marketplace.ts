@@ -225,6 +225,7 @@ export type Offer = {
   offerId: string;
   walkerId: string;
   walkerName: string | null;
+  walkerAvatarUrl?: string | null;
   priceCop: number;
   etaMin: number;
   distanceKm: number;
@@ -307,6 +308,7 @@ export type WalkItem = {
   dogName: string | null;
   walkerId: string | null;
   walkerName: string | null;
+  walkerAvatarUrl?: string | null;
   requestedTime: string;
   durationHours: number;
   priceCop: number;
@@ -356,6 +358,7 @@ export type WalkDetail = {
   walker: null | {
     id: string | null;
     name: string | null;
+    avatarUrl?: string | null;
     allTimeRating: number | null;
     ratingCount: number;
   };
@@ -807,6 +810,7 @@ export type DogCareProfile = {
 export type Client = {
   ownerId: string;
   ownerName: string | null;
+  ownerAvatarUrl?: string | null;
   dogs: { id: string; name: string | null }[];
   walksDone: number;
   upcoming: number;
