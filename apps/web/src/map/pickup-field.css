@@ -129,6 +129,8 @@
 
 /* Suggestions ------------------------------------------------------------------ */
 
+/* avoid-ai-design-ignore: K3 — liquid glass is the app's own surface language (home.css `.glass`) and the
+   brief asked for this list to match it; the blur is real layering over the scrolling cards. */
 /* Placed by PickupField (left, width, top or bottom) and drawn on <body>, so its blur sees the real
    scene behind it. Above the scene (5) and the bottom bar, below the full-screen map (20). */
 .pickup-field__panel {
