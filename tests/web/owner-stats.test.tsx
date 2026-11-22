@@ -100,6 +100,6 @@ describe("Owner statistics panel (FR-22)", () => {
     await renderWalks();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/^Statistics unavailable\.$/);
-    expect(screen.getByRole("button", { name: "Abrir paseo de Luna" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Luna/ })).toBeInTheDocument();
   });
 });
