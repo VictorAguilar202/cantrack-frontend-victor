@@ -79,6 +79,10 @@ describe("Owner statistics panel (FR-22)", () => {
     await renderWalks();
 
     expect(await screen.findByRole("img", { name: "Walks by month" })).toBeInTheDocument();
+    expect(screen.getByText("May 2026: 0 walks")).toBeInTheDocument();
+    expect(screen.getByText("June 2026: 0 walks")).toBeInTheDocument();
+    expect(screen.getByText("July 2026: 0 walks")).toBeInTheDocument();
+    expect(screen.getByText("August 2026: 0 walks")).toBeInTheDocument();
     expect(screen.getByText("October 2026: 2 walks")).toBeInTheDocument();
     expect(screen.getByText("September 2026: 1 walk")).toBeInTheDocument();
     const checkouts = screen.getByText("Checkouts received").parentElement;
